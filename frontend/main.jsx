@@ -52,6 +52,7 @@ function VoiceTaskInput() {
       active
       colorVariant="forest"
       theme="light"
+      borderRadius={0}
       strength={0.64}
       idle={listening ? 0.16 : 0}
       flow={24}
@@ -72,16 +73,12 @@ function VoiceTaskInput() {
           type="button"
           onClick={toggleListening}
           aria-pressed={listening}
-          aria-label={listening ? "Stop voice input preview" : "Start voice input preview"}
+          aria-label={listening ? "Stop voice input" : "Start voice input"}
         >
           {listening ? "Stop" : "Listen"}
         </button>
       </div>
     </VoiceBeam>
-    <div className="voice-status" aria-live="polite">
-      <span className={listening ? "is-live" : ""}>{listening ? "Listening preview" : "Voice input"}</span>
-      <span>{listening ? "Visual only for now" : "Type a task or try the preview"}</span>
-    </div>
   </div>;
 }
 

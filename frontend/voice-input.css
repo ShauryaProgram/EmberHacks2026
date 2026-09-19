@@ -17,6 +17,7 @@
   min-height: 48px;
   padding: 0 6px 0 0;
   border-bottom: 1px solid var(--rule);
+  border-radius: 0;
   background: var(--ground);
 }
 
@@ -44,7 +45,7 @@
   min-width: 66px;
   min-height: 36px;
   border: 1px solid var(--rule);
-  border-radius: 18px;
+  border-radius: 0;
   background: var(--ground);
   color: var(--ink-2);
   padding: 6px 11px;
@@ -57,26 +58,4 @@
   border-color: var(--voice-green);
   background: var(--green-tint);
   color: var(--voice-green);
-}
-
-.voice-status {
-  display: flex;
-  justify-content: space-between;
-  gap: 14px;
-  margin-top: 7px;
-  color: var(--voice-muted);
-  font-size: 11.5px;
-}
-
-.voice-status .is-live {
-  color: var(--voice-green);
-  font-weight: 600;
-}
-
-@media (max-width: 520px) {
-  .voice-status {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 2px;
-  }
 }
