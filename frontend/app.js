@@ -50,7 +50,12 @@ const toast = document.querySelector("#toast");
 
 function courseFor(id) { return courses.find(course => course.id === id); }
 function openTasks() { return state.tasks.filter(task => !task.done); }
-function duration(minutes) { return minutes >= 60 ? `${minutes / 60 % 1 ? (minutes / 60).toFixed(1) : minutes / 60}h` : `${minutes}m`; }
+function duration(minutes) {
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  return `${hours}h${remainder ? ` ${remainder}m` : ""}`;
+}
 function dueText(task) { return task.due === "overdue" ? `Overdue${task.dueTime ? `, ${task.dueTime}` : ""}` : task.due === "today" ? `Today${task.dueTime ? `, ${task.dueTime}` : ""}` : task.done ? "Completed" : `${task.due}${task.dueTime ? `, ${task.dueTime}` : ""}`; }
 function persist() { localStorage.setItem("semester-tasks", JSON.stringify(state.tasks)); }
 function colorVars(course) { return { solid: `var(--${course.color})`, tint: `var(--${course.color}-tint)` }; }
@@ -90,12 +95,42 @@ function renderToday() {
   const overdue = openTasks().filter(task => task.due === "overdue");
   const planned = today.filter(task => task.scheduled).reduce((total, task) => total + task.estimate, 0);
   const blocks = events.filter(event => event.day === 5);
+  const focusTask = state.tasks.find(task => task.id === 2 && !task.done) || today[0];
+  const priorities = [...overdue, ...today.filter(task => task.priority === "High")].slice(0, 3);
+  const loose = [...overdue, ...today.filter(task => !task.scheduled)];
+  const dayCapacity = planned + 135;
+  const planPercent = dayCapacity ? Math.round(planned / dayCapacity * 100) : 0;
+  const gaps = {
+    1: { time: "11:30 AM", label: "Open focus window", length: "1h 30m" },
+    2: { time: "2:30 PM", label: "Reset and walk", length: "30m" }
+  };
+  const agenda = blocks.map((event, index) => {
+    const course = courseFor(event.course);
+    const linkedTask = state.tasks.find(task => task.id === event.task);
+    const isNow = event.task === 2;
+    const block = `<button class="agenda-block ${isNow ? "is-now" : ""}" data-task="${event.task || ""}" data-action="${event.task ? "details" : "calendar-note"}" style="--block-color:${colorVars(course).solid};--block-tint:${colorVars(course).tint}">
+      <time class="agenda-time">${clock(event.start)}</time>
+      <span class="agenda-copy"><strong>${escapeHTML(event.title)}</strong><span>${course.code}${isNow ? " · In focus" : linkedTask?.priority === "High" ? " · High priority" : ""}</span></span>
+      <span class="agenda-duration">${duration(event.end - event.start)}</span>
+    </button>`;
+    const gap = gaps[index + 1];
+    return `${block}${gap ? `<button class="agenda-gap" data-action="quick-add"><time class="agenda-time">${gap.time}</time><span>${gap.label} · ${gap.length}</span><span>Plan work</span></button>` : ""}`;
+  }).join("");
   main.innerHTML = `<section class="page today-page">
-    ${pageHeader("Today", "Saturday, September 19")}
-    <div class="day-ledger" aria-label="Day summary"><div class="ledger-item"><span>Open today</span><strong>${today.length + overdue.length} tasks</strong></div><div class="ledger-item"><span>Planned focus</span><strong>${duration(planned)}</strong></div><div class="ledger-item"><span>Next class</span><strong>Monday, 9:00 AM</strong></div></div>
-    <div class="today-grid"><div>${overdue.length ? `<section class="section"><div class="section-head"><h2 class="section-label urgent">Overdue</h2><span class="section-count">${overdue.length}</span></div><div class="task-list">${overdue.map(task => row(task)).join("")}</div></section>` : ""}
-    <section class="section"><div class="section-head"><h2 class="section-label">To do</h2><span class="section-count">${today.length}</span></div>${today.length ? `<div class="task-list">${today.map(task => row(task)).join("")}</div>` : `<div class="empty-state"><h2>Today is clear.</h2><p>Add a task or use the planner to bring work forward.</p><button class="primary-button" data-action="quick-add">Add a task</button></div>`}</section></div>
-    <aside class="today-schedule"><div class="today-schedule-head"><h2 class="section-label">Day plan</h2><span class="section-count">${blocks.length}</span></div>${blocks.map(event => { const course = courseFor(event.course); return `<div class="timeline-block" style="--course-color:${colorVars(course).solid}"><time>${clock(event.start)} to ${clock(event.end)}</time><strong>${event.title}</strong><span>${course.code}</span></div>`; }).join("")}</aside></div>
+    ${pageHeader("Today", "Saturday, September 19 · A focused study day")}
+    <div class="day-ledger" aria-label="Day summary"><div class="ledger-item"><span>Open today</span><strong>${today.length + overdue.length} tasks</strong></div><div class="ledger-item"><span>Planned focus</span><strong>${duration(planned)}</strong></div><div class="ledger-item"><span>Next deadline</span><strong>Quiz · 11:59 PM</strong></div></div>
+    <div class="today-grid">
+      <div class="today-main">
+        ${focusTask ? `<section class="focus-strip" aria-label="Current focus"><div class="focus-kicker"><i class="live-dot"></i>Right now</div><h2>${escapeHTML(focusTask.title)}</h2><div class="focus-meta"><span>${courseFor(focusTask.course).code}</span><span>${duration(focusTask.estimate)} focus block</span></div><button class="focus-action" data-task="${focusTask.id}" data-action="details">Open task</button></section>` : ""}
+        <section class="agenda"><div class="agenda-head"><h2 class="section-label">Your day</h2><span class="section-count">${duration(planned)} planned</span></div><div class="agenda-line">${agenda}</div></section>
+        <section class="section"><div class="section-head"><h2 class="section-label">Loose tasks</h2><span class="section-count">${loose.length}</span></div>${loose.length ? `<div class="task-list">${loose.map(task => row(task)).join("")}</div>` : `<div class="empty-state"><h2>Everything has a place.</h2><p>Your open work is already scheduled into the day.</p></div>`}</section>
+      </div>
+      <aside class="today-rail" aria-label="Day overview">
+        <section class="rail-section"><div class="rail-head"><h2 class="section-label">Day progress</h2><span class="section-count">${planPercent}%</span></div><div class="day-progress"><div class="progress-number"><strong>${planPercent}%</strong><span>planned</span></div><div class="progress-track"><i style="width:${planPercent}%"></i></div><p class="progress-caption">${duration(planned)} placed · 2h 15m still open</p></div></section>
+        <section class="rail-section"><div class="rail-head"><h2 class="section-label">Priorities</h2><span class="section-count">${priorities.length}</span></div><div class="priority-list">${priorities.map(task => { const course = courseFor(task.course); return `<button class="priority-item" data-task="${task.id}" data-action="details" style="--course-color:${colorVars(course).solid}"><i></i><span><strong>${escapeHTML(task.title)}</strong><span class="${task.due === "overdue" ? "urgent" : ""}">${dueText(task)} · ${duration(task.estimate)}</span></span></button>`; }).join("")}</div></section>
+        <section class="rail-section"><div class="rail-head"><h2 class="section-label">Monday</h2><span class="section-count">Next</span></div><div class="priority-list"><div class="priority-item" style="--course-color:var(--blue)"><i></i><span><strong>CSC110 lecture</strong><span>9:00 to 11:00 AM</span></span></div><div class="priority-item" style="--course-color:var(--plum)"><i></i><span><strong>MAT137 tutorial</strong><span>11:00 AM to noon</span></span></div></div></section>
+      </aside>
+    </div>
   </section>`;
 }
 
@@ -157,6 +192,25 @@ function renderPlanner() {
   </section>`;
 }
 
+function renderProgress() {
+  const done = state.tasks.filter(task => task.done).length;
+  const total = state.tasks.length;
+  const scheduledMinutes = openTasks().filter(task => task.scheduled).reduce((sum, task) => sum + task.estimate, 0);
+  const completion = total ? Math.round(done / total * 100) : 0;
+  const courseRows = courses.map(course => {
+    const tasks = state.tasks.filter(task => task.course === course.id);
+    const completed = tasks.filter(task => task.done).length;
+    const percent = tasks.length ? Math.round(completed / tasks.length * 100) : 0;
+    return `<div class="course-progress-row"><div><strong>${course.code}</strong><span>${course.name}</span></div><div class="progress-track"><i style="width:${percent}%;background:${colorVars(course).solid}"></i></div><b>${completed}/${tasks.length}</b></div>`;
+  }).join("");
+  main.innerHTML = `<section class="page">
+    ${pageHeader("Progress", "A quiet read on workload, not another score to chase", false)}
+    <div class="progress-overview"><div class="metric"><span>Tasks completed</span><strong>${done}</strong><small>${completion}% of this workspace</small></div><div class="metric"><span>Focus scheduled</span><strong>${duration(scheduledMinutes)}</strong><small>Across open work</small></div><div class="metric"><span>Open workload</span><strong>${duration(openTasks().reduce((sum, task) => sum + task.estimate, 0))}</strong><small>${openTasks().length} tasks remaining</small></div></div>
+    <section class="section"><div class="section-head"><h2 class="section-label">By course</h2><span class="section-count">Completed / total</span></div><div class="course-progress">${courseRows}</div></section>
+    <section class="notes"><h2 class="section-label">This week</h2><p>Your schedule is weighted toward Saturday. Move one MAT137 practice block into Tuesday to keep the test review from becoming a single long session.</p></section>
+  </section>`;
+}
+
 function renderCourse() {
   const course = courseFor(state.courseId);
   const tasks = state.tasks.filter(task => task.course === course.id);
@@ -190,6 +244,7 @@ function render() {
   if (state.page === "tasks") renderTasks();
   if (state.page === "calendar") renderCalendar();
   if (state.page === "planner") renderPlanner();
+  if (state.page === "progress") renderProgress();
   if (state.page === "course") renderCourse();
   if (state.page === "settings") renderSettings();
 }
@@ -259,7 +314,7 @@ document.querySelector("#global-search").addEventListener("input", event => rend
 
 function renderSearch(query) {
   const term = query.trim().toLowerCase();
-  const pageResults = ["Today", "Tasks", "Calendar", "Planner", "Settings"].filter(item => !term || item.toLowerCase().includes(term)).map(item => ({ title: item, type: "Page", page: item.toLowerCase() }));
+  const pageResults = ["Today", "Tasks", "Calendar", "Planner", "Progress", "Settings"].filter(item => !term || item.toLowerCase().includes(term)).map(item => ({ title: item, type: "Page", page: item.toLowerCase() }));
   const courseResults = courses.filter(course => !term || `${course.code} ${course.name}`.toLowerCase().includes(term)).map(course => ({ title: `${course.code} · ${course.name}`, type: "Course", course: course.id }));
   const taskResults = state.tasks.filter(task => term && task.title.toLowerCase().includes(term)).map(task => ({ title: task.title, type: "Task", task: task.id }));
   const results = [...taskResults, ...courseResults, ...pageResults].slice(0, 8);
