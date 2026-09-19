@@ -29,3 +29,13 @@ Reading this as: a focused student workspace with direct page structure and tact
 - Motion: one spring connects the fill, tick, strike, and text fade. No unrelated part of the Tasks page moves.
 - Surface: the component uses the page ground directly. Its Bencho tokens map to the existing ground, ink, hairline, accent, and Archivo type tokens.
 - Hierarchy: the full task rows remain below Checklist for course, due date, priority, scheduling, and editing details.
+
+## V5 planning setup direction
+
+Reading this as: a student sets the boundaries of a realistic week before the planner tries to fill it, using the same ENERGY 1 / RHYTHM 2 / MOTION 1 language.
+
+- Structure: the setup is a four-step constraint ledger with a persistent index, strong rules, and no cards.
+- Inputs: weekday and weekend planning windows protect sleep; meals and recurring commitments protect fixed personal time; preferences control focus length, buffer, and daily load.
+- Integration: saved constraints appear as quiet neutral blocks in Today, Calendar, and Planner, and the Schedule action searches around them.
+- Desktop behavior: the Planner becomes one column before event names become narrow enough to stack word by word.
+- Honesty: Voice remains transcription-only, and planning setup makes no claim of syncing to outside calendars.

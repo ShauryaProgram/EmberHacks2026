@@ -1,3 +1,5 @@
+import { createOnboarding, normalizePlanningProfile } from "./onboarding.js";
+
 const courses = [
   { id: "csc110", code: "CSC110Y5", name: "Foundations of Computer Science I", professor: "Andrew Petersen", meets: "Mon / Wed / Fri · 9:00 to 11:00", color: "blue", note: "The course notes order matters more than any video series. Type every example and run it." },
   { id: "mat137", code: "MAT137H5", name: "Differential Calculus", professor: "Nadya Askaripour", meets: "Mon / Wed · 16:00 to 17:00", color: "plum", note: "Work every practice problem by hand, one step per line, and write the reason beside any non-obvious step." },
@@ -38,7 +40,8 @@ const state = {
   query: "",
   sort: "Due",
   theme: localStorage.getItem("semester-theme") || "light",
-  tasks: JSON.parse(localStorage.getItem("semester-tasks") || "null") || structuredClone(seedTasks)
+  tasks: JSON.parse(localStorage.getItem("semester-tasks") || "null") || structuredClone(seedTasks),
+  profile: normalizePlanningProfile(JSON.parse(localStorage.getItem("semester-planning-profile") || "null")),
 };
 
 const main = document.querySelector("main");
@@ -46,6 +49,7 @@ const detailPanel = document.querySelector("#detail-panel");
 const panelScrim = document.querySelector("#panel-scrim");
 const quickDialog = document.querySelector("#quick-add");
 const searchDialog = document.querySelector("#search-dialog");
+const onboardingDialog = document.querySelector("#onboarding-dialog");
 const toast = document.querySelector("#toast");
 
 function courseFor(id) { return courses.find(course => course.id === id); }
@@ -53,6 +57,7 @@ function openTasks() { return state.tasks.filter(task => !task.done); }
 function duration(minutes) { return minutes >= 60 ? `${minutes / 60 % 1 ? (minutes / 60).toFixed(1) : minutes / 60}h` : `${minutes}m`; }
 function dueText(task) { return task.due === "overdue" ? `Overdue${task.dueTime ? `, ${task.dueTime}` : ""}` : task.due === "today" ? `Today${task.dueTime ? `, ${task.dueTime}` : ""}` : task.done ? "Completed" : `${task.due}${task.dueTime ? `, ${task.dueTime}` : ""}`; }
 function persist() { localStorage.setItem("semester-tasks", JSON.stringify(state.tasks)); }
+function persistProfile() { localStorage.setItem("semester-planning-profile", JSON.stringify(state.profile)); }
 function colorVars(course) { return { solid: `var(--${course.color})`, tint: `var(--${course.color}-tint)` }; }
 function escapeHTML(value) { return String(value).replace(/[&<>'"]/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character]); }
 
@@ -62,6 +67,22 @@ function notify(message) {
   clearTimeout(notify.timer);
   notify.timer = setTimeout(() => { toast.hidden = true; }, 2200);
 }
+
+const onboarding = createOnboarding({
+  dialog: onboardingDialog,
+  profile: state.profile,
+  onSave(profile) {
+    state.profile = normalizePlanningProfile(profile);
+    persistProfile();
+    localStorage.removeItem("semester-onboarding-dismissed");
+    state.page = "planner";
+    render();
+    notify("Planning constraints saved");
+  },
+  onDismiss() {
+    localStorage.setItem("semester-onboarding-dismissed", "true");
+  },
+});
 
 function row(task, options = {}) {
   const course = courseFor(task.course);
@@ -89,13 +110,13 @@ function renderToday() {
   const today = openTasks().filter(task => task.due === "today");
   const overdue = openTasks().filter(task => task.due === "overdue");
   const planned = today.filter(task => task.scheduled).reduce((total, task) => total + task.estimate, 0);
-  const blocks = events.filter(event => event.day === 5);
+  const blocks = scheduleBlocksForDay(5);
   main.innerHTML = `<section class="page today-page">
     ${pageHeader("Today", "Saturday, September 19")}
     <div class="day-ledger" aria-label="Day summary"><div class="ledger-item"><span>Open today</span><strong>${today.length + overdue.length} tasks</strong></div><div class="ledger-item"><span>Planned focus</span><strong>${duration(planned)}</strong></div><div class="ledger-item"><span>Next class</span><strong>Monday, 9:00 AM</strong></div></div>
     <div class="today-grid"><div>${overdue.length ? `<section class="section"><div class="section-head"><h2 class="section-label urgent">Overdue</h2><span class="section-count">${overdue.length}</span></div><div class="task-list">${overdue.map(task => row(task)).join("")}</div></section>` : ""}
     <section class="section"><div class="section-head"><h2 class="section-label">To do</h2><span class="section-count">${today.length}</span></div>${today.length ? `<div class="task-list">${today.map(task => row(task)).join("")}</div>` : `<div class="empty-state"><h2>Today is clear.</h2><p>Add a task or use the planner to bring work forward.</p><button class="primary-button" data-action="quick-add">Add a task</button></div>`}</section></div>
-    <aside class="today-schedule"><div class="today-schedule-head"><h2 class="section-label">Day plan</h2><span class="section-count">${blocks.length}</span></div>${blocks.map(event => { const course = courseFor(event.course); return `<div class="timeline-block" style="--course-color:${colorVars(course).solid}"><time>${clock(event.start)} to ${clock(event.end)}</time><strong>${event.title}</strong><span>${course.code}</span></div>`; }).join("")}</aside></div>
+    <aside class="today-schedule"><div class="today-schedule-head"><h2 class="section-label">Day plan</h2><span class="section-count">${blocks.length}</span></div>${blocks.map(timelineBlock).join("")}</aside></div>
   </section>`;
 }
 
@@ -129,16 +150,90 @@ function clock(minutes) {
   return `${hour % 12 || 12}:${mins} ${hour >= 12 ? "PM" : "AM"}`;
 }
 
+function timeToMinutes(value) {
+  const [hour, minute] = String(value || "").split(":").map(Number);
+  return Number.isFinite(hour) && Number.isFinite(minute) ? hour * 60 + minute : 0;
+}
+
+function planningWindowForDay(day) {
+  const window = day < 5 ? state.profile.windows.weekday : state.profile.windows.weekend;
+  return { start: timeToMinutes(window.start), end: timeToMinutes(window.end) };
+}
+
+function protectedBlocksForDay(day) {
+  if (!state.profile.completed) return [];
+  const { start, end } = planningWindowForDay(day);
+  if (String(state.profile.preferences.noStudyDay) === String(day)) {
+    return [{ day, start, end, title: "No-study day", category: "Personal", protected: true }];
+  }
+  const meals = state.profile.meals.filter(meal => {
+    if (!meal.enabled) return false;
+    if (meal.schedule === "weekdays") return day < 5;
+    if (meal.schedule === "weekends") return day >= 5;
+    return true;
+  }).map(meal => ({ day, start: timeToMinutes(meal.start), end: timeToMinutes(meal.end), title: meal.label, category: "Meal", protected: true }));
+  const commitments = state.profile.commitments.filter(item => item.days.includes(day)).map(item => ({
+    day,
+    start: timeToMinutes(item.start),
+    end: timeToMinutes(item.end),
+    title: item.title,
+    category: item.category,
+    protected: true,
+  }));
+  return [...meals, ...commitments];
+}
+
+function scheduledTaskEvent(task) {
+  if (!task.scheduled || events.some(event => event.task === task.id)) return null;
+  const match = String(task.scheduled).match(/^(?:(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Today)\s+)?(\d{1,2}):(\d{2})$/);
+  if (!match) return null;
+  const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+  const day = !match[1] || match[1] === "Today" ? 5 : dayNames.indexOf(match[1]);
+  const start = Number(match[2]) * 60 + Number(match[3]);
+  return { day, start, end: start + task.estimate, title: task.title, course: task.course, task: task.id, scheduledTask: true };
+}
+
+function scheduleBlocksForDay(day) {
+  const scheduled = state.tasks.map(scheduledTaskEvent).filter(Boolean).filter(event => event.day === day);
+  return [...events.filter(event => event.day === day), ...scheduled, ...protectedBlocksForDay(day)].sort((a, b) => a.start - b.start || a.end - b.end);
+}
+
+function timelineBlock(event) {
+  if (event.protected) {
+    return `<div class="timeline-block is-protected" style="--course-color:var(--ink-3)"><time>${clock(event.start)} to ${clock(event.end)}</time><strong>${escapeHTML(event.title)}</strong><span>${escapeHTML(event.category)} · Protected</span></div>`;
+  }
+  const course = courseFor(event.course);
+  return `<div class="timeline-block" style="--course-color:${colorVars(course).solid}"><time>${clock(event.start)} to ${clock(event.end)}</time><strong>${escapeHTML(event.title)}</strong><span>${course.code}</span></div>`;
+}
+
+function findOpenStart(day, minutes) {
+  const { start, end } = planningWindowForDay(day);
+  if (state.profile.completed && String(state.profile.preferences.noStudyDay) === String(day)) return null;
+  const scheduledMinutes = state.tasks.map(scheduledTaskEvent).filter(Boolean).filter(event => event.day === day).reduce((sum, event) => sum + event.end - event.start, 0);
+  if (state.profile.completed && scheduledMinutes + minutes > state.profile.preferences.dailyLimit) return null;
+  const buffer = state.profile.completed ? state.profile.preferences.buffer : 0;
+  const busy = scheduleBlocksForDay(day).map(block => ({ start: block.start - buffer, end: block.end + buffer }));
+  for (let at = start; at + minutes <= end; at += 15) {
+    if (busy.every(block => at + minutes <= block.start || at >= block.end)) return at;
+  }
+  return null;
+}
+
 function renderCalendar() {
   const names = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
   const dates = [14, 15, 16, 17, 18, 19, 20];
   const heads = names.map((name, index) => `<div class="day-head"><strong>${name}</strong><span>${dates[index]}</span></div>`).join("");
   const times = Array.from({ length: 13 }, (_, index) => `<div class="time-label">${index + 8 > 12 ? index - 4 : index + 8}${index + 8 >= 12 ? "p" : "a"}</div>`).join("");
-  const columns = names.map((_, day) => `<div class="day-column">${events.filter(event => event.day === day).map(event => {
+  const columns = names.map((_, day) => `<div class="day-column">${scheduleBlocksForDay(day).filter(event => event.end > 480 && event.start < 1260).map(event => {
+    const shownStart = Math.max(480, event.start);
+    const shownEnd = Math.min(1260, event.end);
+    const top = (shownStart - 480) / 60 * 44;
+    const height = Math.max(24, (shownEnd - shownStart) / 60 * 44 - 2);
+    if (event.protected) return `<div class="calendar-event is-protected" style="top:${top}px;height:${height}px"><strong>${escapeHTML(event.title)}</strong><span>${clock(event.start)}</span></div>`;
     const course = courseFor(event.course);
-    const top = (event.start - 480) / 60 * 44;
-    const height = Math.max(24, (event.end - event.start) / 60 * 44 - 2);
-    return `<button class="calendar-event" data-task="${event.task || ""}" style="top:${top}px;height:${height}px;background:${colorVars(course).tint};color:${colorVars(course).solid};border-top:0;border-right:0;border-bottom:0;text-align:left"><strong>${event.title}</strong><span>${clock(event.start)}</span></button>`;
+    const body = `<strong>${escapeHTML(event.title)}</strong><span>${clock(event.start)}</span>`;
+    const style = `top:${top}px;height:${height}px;background:${colorVars(course).tint};color:${colorVars(course).solid};border-top:0;border-right:0;border-bottom:0;text-align:left`;
+    return event.task ? `<button class="calendar-event" data-task="${event.task}" style="${style}">${body}</button>` : `<div class="calendar-event" style="${style}">${body}</div>`;
   }).join("")}</div>`).join("");
   main.innerHTML = `<section class="page wide">
     ${pageHeader("Calendar", "Fixed classes, deadlines, and time blocks for September 14 to 20", false)}
@@ -149,13 +244,19 @@ function renderCalendar() {
 function renderPlanner() {
   const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
   const plans = days.map((day, index) => {
-    const dayEvents = events.filter(event => event.day === index);
-    return `<section class="day-plan"><h3>${day.slice(0, 3)}</h3><div>${dayEvents.length ? dayEvents.map(event => `<div class="plan-item"><span class="schedule-time">${clock(event.start).replace(":00", "")}</span><span>${event.title}</span></div>`).join("") : '<span class="muted">Open</span>'}</div></section>`;
+    const dayEvents = scheduleBlocksForDay(index);
+    const window = planningWindowForDay(index);
+    const items = dayEvents.map(event => {
+      const marker = event.protected ? "var(--ink-3)" : colorVars(courseFor(event.course)).solid;
+      const meta = event.protected ? `${escapeHTML(event.category)} · ${duration(event.end - event.start)}` : "";
+      return `<div class="plan-item ${event.protected ? "is-protected" : ""}"><span class="schedule-time">${clock(event.start).replace(":00", "")}</span><i class="plan-mark" style="background:${marker}"></i><span class="plan-copy"><strong>${escapeHTML(event.title)}</strong>${meta ? `<small>${meta}</small>` : ""}</span></div>`;
+    }).join("");
+    return `<section class="day-plan"><div class="day-plan-heading"><h3>${day.slice(0, 3)}</h3><span class="day-window">${clock(window.start)}—${clock(window.end)}</span></div><div class="day-plan-items">${items || '<span class="muted">Open inside your planning window</span>'}</div></section>`;
   }).join("");
   const unscheduled = openTasks().filter(task => !task.scheduled);
   main.innerHTML = `<section class="page wide">
-    ${pageHeader("Planner", "Allocate unscheduled work to an open day before giving it a time")}
-    <div class="planner-grid"><div>${plans}</div><aside><div class="section-head"><h2 class="section-label">Unscheduled</h2><span class="section-count">${unscheduled.length}</span></div><div class="unscheduled">${unscheduled.map(task => { const course = courseFor(task.course); return `<button class="task-row" data-task="${task.id}" data-action="details" style="width:100%;border-right:0;border-bottom:0;border-left:0;background:transparent;text-align:left"><i class="course-square" style="background:${colorVars(course).solid}"></i><span><strong class="task-title">${escapeHTML(task.title)}</strong><span class="task-meta"><span>${duration(task.estimate)}</span><span>${course.code}</span></span></span></button>`; }).join("")}</div></aside></div>
+    ${pageHeader("Planner", state.profile.completed ? "Your fixed week comes first. Study work uses the time left between it." : "Set your protected time before placing unscheduled work")}
+    <div class="planner-grid"><div class="planner-week">${plans}</div><aside class="planner-backlog"><div class="section-head"><h2 class="section-label">Unscheduled</h2><span class="section-count">${unscheduled.length}</span></div><div class="unscheduled">${unscheduled.map(task => { const course = courseFor(task.course); return `<button class="task-row" data-task="${task.id}" data-action="details" style="width:100%;border-right:0;border-bottom:0;border-left:0;background:transparent;text-align:left"><i class="course-square" style="background:${colorVars(course).solid}"></i><span><strong class="task-title">${escapeHTML(task.title)}</strong><span class="task-meta"><span>${duration(task.estimate)}</span><span>${course.code}</span></span></span></button>`; }).join("")}</div></aside></div>
   </section>`;
 }
 
@@ -172,9 +273,15 @@ function renderCourse() {
 }
 
 function renderSettings() {
+  const protectedCount = state.profile.completed
+    ? state.profile.meals.filter(meal => meal.enabled).length + state.profile.commitments.length + (state.profile.preferences.noStudyDay !== "" ? 1 : 0)
+    : 0;
+  const planningCopy = state.profile.completed
+    ? `${protectedCount} recurring protections · ${state.profile.preferences.focusBlock}-minute focus blocks`
+    : "Add meals, clubs, work, commute, and the hours study should never use.";
   main.innerHTML = `<section class="page">
     ${pageHeader("Settings", "Keep the workspace readable in the conditions you study in", false)}
-    <div class="settings-list"><div class="setting-row"><div><h2>Appearance</h2><p>Light follows the white paper ground. Dark keeps the same hierarchy.</p></div><div class="segmented" role="group" aria-label="Appearance"><button data-theme-choice="light" class="${state.theme === "light" ? "is-active" : ""}">Light</button><button data-theme-choice="dark" class="${state.theme === "dark" ? "is-active" : ""}">Dark</button></div></div><div class="setting-row"><div><h2>Local task data</h2><p>Changes are stored in this browser.</p></div><button class="text-button" data-action="reset">Reset demo tasks</button></div><div class="setting-row"><div><h2>Keyboard shortcuts</h2><p>Search with ⌘K, add a task with ⌘N, open Voice with ⌘J, and close overlays with Esc.</p></div></div></div>
+    <div class="settings-list"><div class="setting-row"><div><h2>Planning constraints</h2><p>${planningCopy}</p></div><button class="text-button" data-action="onboarding">${state.profile.completed ? "Review setup" : "Set up"}</button></div><div class="setting-row"><div><h2>Appearance</h2><p>Light follows the white paper ground. Dark keeps the same hierarchy.</p></div><div class="segmented" role="group" aria-label="Appearance"><button data-theme-choice="light" class="${state.theme === "light" ? "is-active" : ""}">Light</button><button data-theme-choice="dark" class="${state.theme === "dark" ? "is-active" : ""}">Dark</button></div></div><div class="setting-row"><div><h2>Local task data</h2><p>Changes are stored in this browser.</p></div><button class="text-button" data-action="reset">Reset demo tasks</button></div><div class="setting-row"><div><h2>Keyboard shortcuts</h2><p>Search with ⌘K, add a task with ⌘N, open Voice with ⌘J, and close overlays with Esc.</p></div></div></div>
   </section>`;
 }
 
@@ -227,10 +334,30 @@ function handleAction(action, id) {
   if (action === "details" && task) openDetail(id);
   if (action === "close-panel") closeDetail();
   if (action === "toggle" && task) { task.done = !task.done; task.due = task.done ? "done" : "today"; persist(); closeDetail(); render(); notify(task.done ? "Task completed" : "Task reopened"); }
-  if (action === "schedule" && task) { task.scheduled = task.scheduled ? "" : "Today 16:00"; persist(); closeDetail(); render(); notify(task.scheduled ? "Task scheduled for 4:00 PM" : "Task removed from schedule"); }
+  if (action === "schedule" && task) {
+    if (task.scheduled) {
+      task.scheduled = "";
+      persist();
+      closeDetail();
+      render();
+      notify("Task removed from schedule");
+    } else {
+      const start = findOpenStart(5, task.estimate);
+      if (start === null) {
+        notify("No open time fits inside Saturday's planning window");
+      } else {
+        task.scheduled = `Saturday ${String(Math.floor(start / 60)).padStart(2, "0")}:${String(start % 60).padStart(2, "0")}`;
+        persist();
+        closeDetail();
+        render();
+        notify(`Task scheduled for ${clock(start)}`);
+      }
+    }
+  }
   if (action === "remove" && task) { state.tasks = state.tasks.filter(item => item.id !== task.id); persist(); render(); notify("Task removed"); }
   if (action === "calendar-note") notify("Calendar remains on the demo week");
   if (action === "reset") { state.tasks = structuredClone(seedTasks); persist(); render(); notify("Demo tasks reset"); }
+  if (action === "onboarding") onboarding.open(state.profile);
 }
 
 function addTask({ title, course = state.courseId, due = "today", priority = "Medium", estimate = 30, scheduled = "", note = "" }) {
@@ -324,3 +451,7 @@ document.addEventListener("keydown", event => {
 });
 
 render();
+
+if (!state.profile.completed && localStorage.getItem("semester-onboarding-dismissed") !== "true") {
+  requestAnimationFrame(() => onboarding.open(state.profile));
+}

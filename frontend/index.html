@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
-  <title>Semester workspace</title>
+  <title>Semester workspace v5</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -94,6 +94,35 @@
 
   <dialog id="voice-command-dialog" class="overlay-dialog voice-command-dialog" aria-labelledby="voice-command-title">
     <div id="voice-command-root"></div>
+  </dialog>
+
+  <dialog id="onboarding-dialog" class="onboarding-dialog" aria-labelledby="setup-title">
+    <form id="onboarding-form" method="dialog">
+      <aside class="setup-index" aria-label="Setup progress">
+        <span class="section-label">Workspace setup</span>
+        <ol>
+          <li data-step-indicator class="is-active">Planning window</li>
+          <li data-step-indicator>Meals</li>
+          <li data-step-indicator>Commitments</li>
+          <li data-step-indicator>Preferences</li>
+        </ol>
+      </aside>
+      <div class="setup-main">
+        <header class="setup-heading">
+          <span id="setup-step-label" class="section-label">01 / 04 · Planning window</span>
+          <h2 id="setup-title">Define the edges of your day</h2>
+        </header>
+        <div id="setup-content"></div>
+        <p id="setup-error" class="setup-error" role="alert" hidden></p>
+        <footer class="setup-actions">
+          <button class="text-button" type="button" data-setup-action="dismiss">Set up later</button>
+          <div>
+            <button class="text-button" type="button" data-setup-action="back" hidden>Back</button>
+            <button class="primary-button" type="button" data-setup-action="next">Continue</button>
+          </div>
+        </footer>
+      </div>
+    </form>
   </dialog>
 
   <aside id="detail-panel" class="detail-panel" aria-hidden="true" aria-label="Task details" inert></aside>

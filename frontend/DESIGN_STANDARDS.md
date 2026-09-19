@@ -65,6 +65,21 @@ Semester Workspace is a quiet Modernist planning tool for students. The interfac
 - Show only the live transcript, status, and close instruction until task creation or question handling is implemented.
 - Keep the VoiceBeam effect inside the voice sheet and only active while listening.
 
+## Planning setup
+
+- Treat onboarding as a constraint ledger, not a promotional wizard. Use the same page rules, typography, and controls as the rest of the workspace.
+- Ask only for information that changes scheduling: weekday and weekend boundaries, meals, recurring commitments, focus length, buffers, daily study limit, and an optional no-study day.
+- Explain the consequence of each decision in plain language. Do not imply calendar integrations or automation that the product does not have.
+- Show protected time directly in Today, Calendar, and Planner. Scheduling must search around those blocks rather than treating setup as decorative profile data.
+- Keep the step index persistent on desktop. The active step may use a 2px ink marker because it communicates location, not decoration.
+- Use the modal shadow only because setup floats above the workspace. Its interior remains white, flat, and card-free.
+
+## Desktop layout
+
+- Switch dense split views to one column when the workspace content area can no longer hold both columns legibly, even if the overall browser width is technically desktop-sized.
+- Planner rows use a stable day column, time column, 6px event marker, and content column. Event names must not be squeezed into single-word stacks.
+- Keep the unscheduled list beside the week only when at least 290px remains for it without compressing the weekly ledger.
+
 ## Responsive and accessible behavior
 
 - Preserve keyboard access, visible focus, semantic headings, and honest empty states.
