@@ -1,15 +1,13 @@
 from __future__ import annotations
 
-from zoneinfo import ZoneInfo
-
 from app.db import Database
-from app.utils import iso, parse_datetime, utc_now
-from procasination.reset_demo import DEMO_SOURCE_KEY, reset_demo
+from app.utils import iso, utc_now
+from procasination.reset_onboarding import reset_onboarding
 from procasination.store import FocusStore
 
 
-def test_reset_returns_to_onboarding_and_keeps_only_demo_session(tmp_path):
-    db = Database(tmp_path / "demo.db")
+def test_reset_returns_to_onboarding_without_demo_events(tmp_path):
+    db = Database(tmp_path / "reset.db")
     db.initialize()
     FocusStore(db).initialize()
     now = iso(utc_now())
@@ -27,14 +25,9 @@ def test_reset_returns_to_onboarding_and_keeps_only_demo_session(tmp_path):
     )
     db.execute("UPDATE study_settings SET planning_profile=? WHERE id=1", ('{"version":5}',))
 
-    reset_demo(db)
+    reset_onboarding(db)
 
     assert db.fetch_one("SELECT id FROM profile WHERE id=1") is None
-    events = db.fetch_all("SELECT * FROM calendar_events")
-    assert len(events) == 1
-    assert events[0]["source_key"] == DEMO_SOURCE_KEY
-    timezone = ZoneInfo("America/Toronto")
-    assert parse_datetime(events[0]["start_at"]).astimezone(timezone).hour == 15
-    assert parse_datetime(events[0]["end_at"]).astimezone(timezone).hour == 16
+    assert db.fetch_all("SELECT * FROM calendar_events") == []
     settings = db.fetch_one("SELECT planning_profile FROM study_settings WHERE id=1")
     assert settings["planning_profile"] == "{}"

@@ -96,7 +96,7 @@ def test_url_host_ignores_www_and_path():
 
 
 class TestPrefilter:
-    settings = ProcrastinationSettings(demo_mode=False)
+    settings = ProcrastinationSettings()
 
     def _one(self, activity: ActivitySample):
         segmenter = Segmenter()
@@ -143,21 +143,6 @@ class TestPrefilter:
 
     def test_youtube_is_left_to_the_model_because_the_title_decides(self):
         assert self._one(sample("Google Chrome", "Integration by parts", "https://youtube.com/watch?v=1")) is None
-
-    def test_demo_mode_treats_generic_youtube_as_off_task(self):
-        segmenter = Segmenter()
-        segmenter.add(sample("Safari", "YouTube", "https://youtube.com"))
-        verdict = prefilter(segmenter.drain()[0], ProcrastinationSettings(demo_mode=True))
-        assert verdict["verdict"] == "off_task"
-        assert verdict["decided_by"] == "prefilter"
-
-    def test_demo_mode_treats_a_youtube_video_in_a_title_only_browser_as_off_task(self):
-        segmenter = Segmenter()
-        segmenter.add(sample("zen", "A very tempting video - YouTube"))
-        verdict = prefilter(segmenter.drain()[0], ProcrastinationSettings(demo_mode=True))
-        assert verdict["verdict"] == "off_task"
-        assert verdict["confidence"] == 100
-        assert verdict["decided_by"] == "prefilter"
 
     def test_dual_purpose_apps_are_left_to_the_model(self):
         for app in ("Discord", "Notion", "Spotify", "Safari"):

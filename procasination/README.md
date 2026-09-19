@@ -38,7 +38,7 @@ This mirrors the triage-then-analyze shape the Canvas sync already uses.
    for an hour, so after the first minutes almost every cycle resolves for free.
    Scoped to one session on purpose: "on task" only means something relative to
    one assignment. Ambiguity is never cached, so it can escalate later.
-3. **Gemini.** A batched text pass once a minute over unresolved segments; a
+3. **Gemini.** A batched text pass every 30 seconds over unresolved segments; a
    screenshot pass only for what that could not settle.
 
 ## Browsers
@@ -61,7 +61,7 @@ Both Gemini on OpenRouter.
 
 | role | model | why |
 | --- | --- | --- |
-| every-minute text verdict | `google/gemini-3.1-flash-lite` | latency, and it is the call that repeats |
+| recurring text verdict | `google/gemini-3.1-flash-lite` | latency, and it is the call that repeats |
 | screenshot + nudge wording | `google/gemini-3.8-flash` | multimodal, and writing to a person needs the reasoning |
 
 Every call runs at `reasoning: {"effort": "low"}`. Measured on
@@ -165,8 +165,7 @@ PYTHONPATH=backend:. backend/.venv/bin/uvicorn procasination.server:app --port 8
 cd procasination && make test     # 64 tests, no network
 ```
 
-To see the whole loop without waiting, `make run-fast` nudges after 20s of drift
-instead of 90s. `make watch` shows a live countdown.
+`make watch` shows the live drift and nudge countdown.
 
 ### macOS permissions
 
@@ -200,7 +199,7 @@ All optional, and all read from `backend/.env` alongside the existing settings.
 | `PROCRASTINATION_TEXT_MODEL` | `google/gemini-3.1-flash-lite` | |
 | `PROCRASTINATION_VISION_MODEL` | `google/gemini-3.8-flash` | |
 | `PROCRASTINATION_SAMPLE_INTERVAL_SECONDS` | `15` | how often the screen is read |
-| `PROCRASTINATION_VERDICT_INTERVAL_SECONDS` | `60` | how often unresolved segments go to the model |
+| `PROCRASTINATION_VERDICT_INTERVAL_SECONDS` | `30` | how often unresolved segments go to the model |
 | `PROCRASTINATION_IDLE_THRESHOLD_SECONDS` | `600` | see below |
 | `PROCRASTINATION_NUDGE_AFTER_SECONDS` | `90` | sustained drift before interrupting |
 | `PROCRASTINATION_NUDGE_COOLDOWN_SECONDS` | `600` | minimum spacing between nudges |

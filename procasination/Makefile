@@ -1,4 +1,4 @@
-.PHONY: test run sample status demo nudge watch
+.PHONY: test run sample status nudge watch
 
 VENV ?= ../backend/.venv
 
@@ -17,11 +17,6 @@ sample:
 
 status:
 	curl -s http://127.0.0.1:8766/api/procrastination/status
-
-# Seeds a study session that is active right now so the watcher starts at once,
-# instead of waiting for a real study block. Ctrl+C removes it.
-demo:
-	cd .. && PYTHONPATH=backend:. $(subst ../,,$(VENV))/bin/python -m procasination.demo --minutes 20
 
 # Checks that push and the macOS notification actually deliver, and reports why
 # if they did not.
@@ -50,13 +45,3 @@ watch:
 		|| echo "waiting for the watcher..."; \
 		sleep 3; \
 	done
-
-# Same server, but impatient: nudges after 20s of drift instead of 90s. Use it
-# to see the whole loop without waiting two minutes.
-run-fast:
-	cd .. && PYTHONPATH=backend:. \
-		PROCRASTINATION_SAMPLE_INTERVAL_SECONDS=5 \
-		PROCRASTINATION_VERDICT_INTERVAL_SECONDS=10 \
-		PROCRASTINATION_NUDGE_AFTER_SECONDS=20 \
-		PROCRASTINATION_NUDGE_COOLDOWN_SECONDS=60 \
-		$(subst ../,,$(VENV))/bin/uvicorn procasination.server:app --host 127.0.0.1 --port 8766

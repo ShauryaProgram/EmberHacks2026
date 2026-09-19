@@ -50,7 +50,7 @@ class ProcrastinationMonitor:
     The loop is text-first: it samples the frontmost window every few seconds,
     collapses repeats into segments, resolves what it can with local rules and a
     per-session cache, and asks a cheap Gemini model about the rest once a
-    minute. A screenshot is captured only to settle a segment the text could not,
+    verdict cycle. A screenshot is captured only to settle a segment the text could not,
     and the decision to interrupt is made in code, never by a model.
     """
 
@@ -496,7 +496,6 @@ class ProcrastinationMonitor:
         if self.idle_threshold_seconds == self.settings.idle_threshold_seconds:
             return self.settings
         return ProcrastinationSettings(
-            demo_mode=self.settings.demo_mode,
             text_model=self.settings.text_model,
             vision_model=self.settings.vision_model,
             sample_interval_seconds=self.settings.sample_interval_seconds,

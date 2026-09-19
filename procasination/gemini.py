@@ -95,7 +95,7 @@ Assume they know they are off task and just need a small, easy way back in."""
 class ProcrastinationClient:
     """OpenRouter client for the watcher.
 
-    Two Gemini models by design: a cheap, fast one for the every-minute text
+    Two Gemini models by design: a cheap, fast one for the recurring text
     verdicts, and a stronger multimodal one for the rarer calls that need to
     look at a screenshot or write to a person.
 
