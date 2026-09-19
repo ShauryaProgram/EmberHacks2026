@@ -82,6 +82,8 @@ kbd { border: 0; background: none; color: var(--ink-3); font: inherit; font-size
 .quiet-button:hover { background: var(--hover); color: var(--ink); }
 
 .mobile-header, .mobile-nav { display: none; }
+.mobile-header-actions { display: flex; align-items: center; gap: 2px; }
+.mobile-header-actions .quiet-button { width: auto; }
 main { min-width: 0; overflow-y: auto; }
 .page { width: min(100%, 956px); padding: 58px 64px 120px; }
 .page.wide { width: 100%; max-width: none; }

@@ -139,7 +139,7 @@ function renderCalendar() {
     return `<button class="calendar-event" data-task="${event.task || ""}" style="top:${top}px;height:${height}px;background:${colorVars(course).tint};color:${colorVars(course).solid};border-top:0;border-right:0;border-bottom:0;text-align:left"><strong>${event.title}</strong><span>${clock(event.start)}</span></button>`;
   }).join("")}</div>`).join("");
   main.innerHTML = `<section class="page wide">
-    ${pageHeader("Calendar", "Week of September 14 to 20", false)}
+    ${pageHeader("Calendar", "Fixed classes, deadlines, and time blocks for September 14 to 20", false)}
     <div class="calendar-shell"><div class="calendar-toolbar"><h2>September 2026</h2><div class="button-group"><button data-action="calendar-note">Previous</button><button data-action="calendar-note">This week</button><button data-action="calendar-note">Next</button></div></div><div class="calendar"><div class="calendar-corner"></div>${heads}<div class="time-column">${times}</div>${columns}<div class="now-line" aria-label="Current time"></div></div></div>
   </section>`;
 }
@@ -152,7 +152,7 @@ function renderPlanner() {
   }).join("");
   const unscheduled = openTasks().filter(task => !task.scheduled);
   main.innerHTML = `<section class="page wide">
-    ${pageHeader("Planner", "Place unscheduled work beside the week that has to hold it")}
+    ${pageHeader("Planner", "Allocate unscheduled work to an open day before giving it a time")}
     <div class="planner-grid"><div>${plans}</div><aside><div class="section-head"><h2 class="section-label">Unscheduled</h2><span class="section-count">${unscheduled.length}</span></div><div class="unscheduled">${unscheduled.map(task => { const course = courseFor(task.course); return `<button class="task-row" data-task="${task.id}" data-action="details" style="width:100%;border-right:0;border-bottom:0;border-left:0;background:transparent;text-align:left"><i class="course-square" style="background:${colorVars(course).solid}"></i><span><strong class="task-title">${escapeHTML(task.title)}</strong><span class="task-meta"><span>${duration(task.estimate)}</span><span>${course.code}</span></span></span></button>`; }).join("")}</div></aside></div>
   </section>`;
 }
@@ -172,7 +172,7 @@ function renderCourse() {
 function renderSettings() {
   main.innerHTML = `<section class="page">
     ${pageHeader("Settings", "Keep the workspace readable in the conditions you study in", false)}
-    <div class="settings-list"><div class="setting-row"><div><h2>Appearance</h2><p>Light follows the white paper ground. Dark keeps the same hierarchy.</p></div><div class="segmented" role="group" aria-label="Appearance"><button data-theme-choice="light" class="${state.theme === "light" ? "is-active" : ""}">Light</button><button data-theme-choice="dark" class="${state.theme === "dark" ? "is-active" : ""}">Dark</button></div></div><div class="setting-row"><div><h2>Local task data</h2><p>Changes are stored in this browser.</p></div><button class="text-button" data-action="reset">Reset demo tasks</button></div><div class="setting-row"><div><h2>Keyboard shortcuts</h2><p>Search with ⌘K, add a task with ⌘N, and close overlays with Esc.</p></div></div></div>
+    <div class="settings-list"><div class="setting-row"><div><h2>Appearance</h2><p>Light follows the white paper ground. Dark keeps the same hierarchy.</p></div><div class="segmented" role="group" aria-label="Appearance"><button data-theme-choice="light" class="${state.theme === "light" ? "is-active" : ""}">Light</button><button data-theme-choice="dark" class="${state.theme === "dark" ? "is-active" : ""}">Dark</button></div></div><div class="setting-row"><div><h2>Local task data</h2><p>Changes are stored in this browser.</p></div><button class="text-button" data-action="reset">Reset demo tasks</button></div><div class="setting-row"><div><h2>Keyboard shortcuts</h2><p>Search with ⌘K, add a task with ⌘N, start a voice transcript with ⌘J, and close overlays with Esc.</p></div></div></div>
   </section>`;
 }
 
@@ -231,6 +231,15 @@ function handleAction(action, id) {
   if (action === "reset") { state.tasks = structuredClone(seedTasks); persist(); render(); notify("Demo tasks reset"); }
 }
 
+function addTask({ title, course = state.courseId, due = "today", priority = "Medium", estimate = 30, scheduled = "", note = "" }) {
+  const cleanTitle = String(title || "").trim();
+  if (!cleanTitle) return null;
+  const task = { id: Date.now(), title: cleanTitle, course, due, priority, estimate: Number(estimate), scheduled, note };
+  state.tasks.push(task);
+  persist();
+  return task;
+}
+
 document.addEventListener("click", event => {
   const pageButton = event.target.closest("[data-page]");
   if (pageButton) { state.page = pageButton.dataset.page; closeDetail(); render(); main.scrollTop = 0; return; }
@@ -255,6 +264,7 @@ main.addEventListener("change", event => {
 });
 
 document.querySelectorAll(".search-trigger").forEach(button => button.addEventListener("click", () => { searchDialog.showModal(); document.querySelector("#global-search").focus(); renderSearch(""); }));
+document.querySelectorAll(".voice-command-trigger").forEach(button => button.addEventListener("click", () => window.semesterOpenVoiceCommand?.()));
 document.querySelector("#global-search").addEventListener("input", event => renderSearch(event.target.value));
 
 function renderSearch(query) {
@@ -278,11 +288,10 @@ document.querySelector("#search-results").addEventListener("click", event => {
 document.querySelector("#quick-form").addEventListener("submit", event => {
   event.preventDefault();
   const data = new FormData(event.currentTarget);
-  state.tasks.push({ id: Date.now(), title: data.get("title").trim(), course: data.get("course"), due: data.get("due"), priority: data.get("priority"), estimate: Number(data.get("estimate")), scheduled: "", note: "" });
-  persist();
+  const task = addTask({ title: data.get("title"), course: data.get("course"), due: data.get("due"), priority: data.get("priority"), estimate: data.get("estimate") });
+  if (!task) return;
   quickDialog.close();
   event.currentTarget.reset();
-  window.semesterResetVoiceInput?.();
   state.page = "today";
   render();
   notify("Task created");
@@ -294,6 +303,7 @@ document.addEventListener("keydown", event => {
   const modifier = event.metaKey || event.ctrlKey;
   if (modifier && event.key.toLowerCase() === "k") { event.preventDefault(); searchDialog.showModal(); document.querySelector("#global-search").focus(); renderSearch(""); }
   if (modifier && event.key.toLowerCase() === "n") { event.preventDefault(); quickDialog.showModal(); document.querySelector("#task-title").focus(); }
+  if (modifier && event.key.toLowerCase() === "j") { event.preventDefault(); window.semesterOpenVoiceCommand?.(); }
   if (event.key === "Escape") closeDetail();
 });
 

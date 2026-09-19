@@ -1,61 +1,79 @@
-#voice-input-root {
+#voice-command-root {
   min-width: 0;
 }
 
-.voice-input-ui {
-  --voice-ink: #171615;
-  --voice-muted: #716c68;
-  --voice-green: #62786b;
-  min-width: 0;
+.voice-command-dialog {
+  width: min(620px, calc(100vw - 32px));
 }
 
-.voice-entry {
+.voice-transcript-ui {
+  padding: 24px;
+}
+
+.voice-transcript-heading {
+  margin-bottom: 30px;
+}
+
+.voice-transcript-stage {
   position: relative;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 48px;
-  padding: 0 6px 0 0;
+  display: grid;
+  min-height: 144px;
+  place-items: center;
+  padding: 26px 30px 30px;
+  border-top: 2px solid var(--rule);
   border-bottom: 1px solid var(--rule);
-  border-radius: 0;
   background: var(--ground);
+  text-align: center;
 }
 
-.voice-entry:focus-within {
-  border-bottom-color: var(--voice-green);
-}
-
-.voice-entry input {
-  min-width: 0;
-  flex: 1;
-  border: 0;
-  background: transparent;
-  padding: 9px 0;
+.voice-transcript-copy {
+  max-width: 470px;
+  margin: 0;
   color: var(--ink);
-  font: inherit;
-  font-size: 17px;
+  font-size: clamp(21px, 3vw, 29px);
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  line-height: 1.22;
 }
 
-.voice-entry input:focus {
-  outline: 0;
-}
-
-.voice-button {
-  flex: 0 0 auto;
-  min-width: 66px;
-  min-height: 36px;
-  border: 1px solid var(--rule);
-  border-radius: 0;
-  background: var(--ground);
+.voice-transcript-copy[data-empty] {
   color: var(--ink-2);
-  padding: 6px 11px;
-  font-size: 12px;
-  font-weight: 600;
 }
 
-.voice-button:hover,
-.voice-button[aria-pressed="true"] {
-  border-color: var(--voice-green);
-  background: var(--green-tint);
-  color: var(--voice-green);
+.voice-transcript-stage.is-error .voice-transcript-copy {
+  color: var(--accent);
+}
+
+.voice-transcript-status,
+.voice-transcript-hint {
+  margin: 12px 0 0;
+  color: var(--ink-3);
+  font-size: 12.5px;
+}
+
+.voice-transcript-status {
+  color: var(--green);
+}
+
+.voice-transcript-stage.is-error + .voice-transcript-status {
+  color: var(--accent);
+}
+
+.voice-transcript-hint {
+  margin-top: 2px;
+}
+
+@media (max-width: 760px) {
+  .voice-command-dialog {
+    width: min(100vw - 24px, 620px);
+  }
+
+  .voice-transcript-ui {
+    padding: 20px;
+  }
+
+  .voice-transcript-stage {
+    min-height: 160px;
+    padding: 24px 18px 30px;
+  }
 }

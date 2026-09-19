@@ -11,12 +11,11 @@ Reading this as a student planning workspace in a quiet Modernist visual languag
 - Motion: transitions are limited to hover and overlay entry so the workspace stays calm during study.
 - Shape: controls and panels use square corners; the task checkbox is the only circular element because completion is a distinct state.
 
-## V3 component direction
+## V4 voice direction
 
 Reading this as: a student planning workspace for daily study, with quiet Modernist structure and one expressive interaction, dial ENERGY 1 / RHYTHM 2 / MOTION 1.
 
-- VoiceBeam is the single expressive accent. It sits on the task-title field because voice capture is an input state, not a page decoration.
-- The forest variant keeps the effect inside the existing course-color vocabulary and avoids a generic rainbow glow.
-- The rounded Listen control is limited to this interaction because it marks a toggle state; the rest of the v2 controls keep their original shape language.
-- The v3 VoiceBeam uses a manual visual level only. Microphone permissions, speech recognition, and server work are intentionally deferred.
-- Bencho was used as a reference for compact, tunable interaction blocks and explicit state changes; no gallery layout or decorative component collection was copied.
+- VoiceBeam is the single expressive accent. It lives in the global voice sheet because recording is a workspace-wide action, not a task-field decoration.
+- The moving color beam is tied to a real microphone stream and only appears while the transcript is actively listening.
+- The transcript is the only content in the voice sheet. It does not imply task creation, search, or answer generation before those services exist.
+- The square transcript stage keeps V4 compatible with the quiet Modernist shell. V5 may revise shape and surface language as one coherent system.
