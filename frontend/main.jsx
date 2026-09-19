@@ -15,8 +15,15 @@ function VoiceTaskInput() {
       setTitle("");
       setListening(false);
     };
+    const quickDialog = document.querySelector("#quick-add");
+    const resetOnClose = () => {
+      setTitle("");
+      setListening(false);
+    };
+    quickDialog?.addEventListener("close", resetOnClose);
     return () => {
       delete window.semesterResetVoiceInput;
+      quickDialog?.removeEventListener("close", resetOnClose);
       cancelAnimationFrame(frame.current);
     };
   }, []);
