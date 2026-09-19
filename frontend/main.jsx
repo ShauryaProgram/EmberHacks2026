@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { VoiceBeam, useMicrophone } from "voice-glow";
-import { TaskWidgets } from "./components/TaskWidgets.jsx";
+import { ChecklistSection } from "./components/ChecklistSection.jsx";
 import "./bencho-components.css";
 import "./voice-input.css";
 import "./app.js";
@@ -178,7 +178,7 @@ function VoiceTranscript() {
       active={live}
       colorVariant="colorful"
       theme={theme}
-      borderRadius={18}
+      borderRadius={0}
       strength={0.62}
       idle={live ? 0.07 : 0}
       flow={34}
@@ -198,18 +198,18 @@ function VoiceTranscript() {
 const voiceRoot = document.querySelector("#voice-command-root");
 if (voiceRoot) createRoot(voiceRoot).render(<VoiceTranscript />);
 
-let taskWidgetRoot = null;
-window.semesterRenderTaskWidgets = (host, tasks) => {
+let checklistRoot = null;
+window.semesterRenderChecklist = (host, tasks) => {
   if (!host) return;
-  if (!taskWidgetRoot || taskWidgetRoot.host !== host) {
-    taskWidgetRoot?.root.unmount();
-    taskWidgetRoot = { host, root: createRoot(host) };
+  if (!checklistRoot || checklistRoot.host !== host) {
+    checklistRoot?.root.unmount();
+    checklistRoot = { host, root: createRoot(host) };
   }
-  taskWidgetRoot.root.render(
-    <TaskWidgets
+  checklistRoot.root.render(
+    <ChecklistSection
       tasks={tasks}
-      onToggle={(id) => window.dispatchEvent(new CustomEvent("semester:widget-toggle", { detail: { id } }))}
+      onToggle={(id) => window.dispatchEvent(new CustomEvent("semester:checklist-toggle", { detail: { id } }))}
     />,
   );
 };
-window.dispatchEvent(new Event("semester:task-widgets-ready"));
+window.dispatchEvent(new Event("semester:checklist-ready"));

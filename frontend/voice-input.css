@@ -20,9 +20,9 @@
   min-height: 144px;
   place-items: center;
   padding: 26px 30px 30px;
-  border: 0;
-  border-radius: 18px;
-  background: var(--surface-muted);
+  border-top: 2px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  background: var(--ground);
   text-align: center;
 }
 
@@ -51,7 +51,7 @@
   font-size: 12.5px;
 }
 
-.voice-transcript-status { color: var(--action); }
+.voice-transcript-status { color: var(--green); }
 
 .voice-transcript-stage.is-error + .voice-transcript-status {
   color: var(--accent);

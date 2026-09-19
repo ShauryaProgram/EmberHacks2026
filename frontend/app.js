@@ -113,16 +113,14 @@ function renderTasks() {
   const groupFor = task => task.done ? "Completed" : task.due === "overdue" ? "Overdue" : task.due === "today" ? "Today" : "Upcoming";
   const groupNames = state.tab === "All" ? ["Overdue", "Today", "Upcoming"] : [state.tab];
   const groups = groupNames.map(name => ({ name, tasks: tasks.filter(task => groupFor(task) === name) })).filter(group => group.tasks.length);
-  main.innerHTML = `<section class="page tasks-page">
+  main.innerHTML = `<section class="page">
     ${pageHeader("Tasks", `${openTasks().length} open · ${state.tasks.filter(task => task.done).length} completed`)}
     <div class="tab-bar" role="tablist">${tabs}</div>
     <div class="task-tools"><input class="line-input" id="task-search" aria-label="Search tasks" placeholder="Search tasks" value="${state.query}"><select class="line-select" id="sort-tasks" aria-label="Sort tasks"><option${state.sort === "Due" ? " selected" : ""}>Due</option><option${state.sort === "Priority" ? " selected" : ""}>Priority</option><option${state.sort === "Estimate" ? " selected" : ""}>Estimate</option></select><span class="section-count">${tasks.length} shown</span></div>
-    <div class="tasks-layout">
-      <section class="section tasks-list-column">${tasks.length ? groups.map(group => `<div class="task-group"><div class="section-head"><h2 class="section-label ${group.name === "Overdue" ? "urgent" : ""}">${group.name}</h2><span class="section-count">${group.tasks.length}</span></div><div class="task-list">${group.tasks.map(task => row(task)).join("")}</div></div>`).join("") : `<div class="empty-state"><h2>No matching tasks.</h2><p>Clear the search or add work to this view.</p><button class="primary-button" data-action="quick-add">Add a task</button></div>`}</section>
-      <aside id="task-widgets-root" class="task-widgets-root" aria-label="Task focus tools"></aside>
-    </div>
+    <div id="task-checklist-root" aria-label="Checklist"></div>
+    <section class="section">${tasks.length ? groups.map(group => `<div class="task-group"><div class="section-head"><h2 class="section-label ${group.name === "Overdue" ? "urgent" : ""}">${group.name}</h2><span class="section-count">${group.tasks.length}</span></div><div class="task-list">${group.tasks.map(task => row(task)).join("")}</div></div>`).join("") : `<div class="empty-state"><h2>No matching tasks.</h2><p>Clear the search or add work to this view.</p><button class="primary-button" data-action="quick-add">Add a task</button></div>`}</section>
   </section>`;
-  window.semesterRenderTaskWidgets?.(document.querySelector("#task-widgets-root"), state.tasks);
+  window.semesterRenderChecklist?.(document.querySelector("#task-checklist-root"), tasks);
 }
 
 function clock(minutes) {
@@ -289,7 +287,7 @@ document.querySelector("#search-results").addEventListener("click", event => {
   else { state.page = result.dataset.searchPage; render(); }
 });
 
-window.addEventListener("semester:widget-toggle", event => {
+window.addEventListener("semester:checklist-toggle", event => {
   const task = state.tasks.find(item => item.id === Number(event.detail?.id));
   if (!task) return;
   task.done = !task.done;
@@ -299,7 +297,7 @@ window.addEventListener("semester:widget-toggle", event => {
   notify(task.done ? "Task completed" : "Task reopened");
 });
 
-window.addEventListener("semester:task-widgets-ready", () => {
+window.addEventListener("semester:checklist-ready", () => {
   if (state.page === "tasks") renderTasks();
 });
 
