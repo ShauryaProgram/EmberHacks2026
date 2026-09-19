@@ -1,6 +1,6 @@
-# Quercus Calendar Backend
+# Ordo Backend
 
-A per-user backend for a future web calendar. It ingests Quercus (Canvas), stores a normalized calendar in SQLite, produces preparation reminders, and sends browser Web Push notifications.
+Ordo's per-user backend ingests Quercus (Canvas), stores a normalized calendar in SQLite, produces preparation reminders, and sends browser Web Push notifications.
 
 ## What It Syncs
 

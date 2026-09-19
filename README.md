@@ -1,6 +1,6 @@
-# Ember
+# Ordo
 
-Ember is a local-first U of T study workspace. It syncs Fall 2026 Quercus
+Ordo is a local-first U of T study workspace. It syncs Fall 2026 Quercus
 courses, assignments, calendar entries, and official section meetings; plans
 study blocks around them; and activates the procrastination watcher only while
 one of those study blocks is in progress.
