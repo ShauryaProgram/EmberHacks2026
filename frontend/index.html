@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Ember · Semester workspace</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Workspace navigation">
+      <div class="brand">
+        <strong>Ember</strong>
+        <span>Quercus study workspace</span>
+      </div>
+
+      <div class="week-index" aria-label="Week 3, Saturday selected">
+        <div class="week-index-head"><span>Week 03</span><span>Sep 14 to 20</span></div>
+        <div class="week-days" aria-hidden="true"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><strong>S</strong><span>S</span></div>
+      </div>
+
+      <nav class="primary-nav" aria-label="Pages">
+        <button class="nav-item is-active" data-page="today" aria-current="page"><span>Today</span><span data-count="today"></span></button>
+        <button class="nav-item" data-page="tasks"><span>Assignments</span><span data-count="tasks"></span></button>
+        <button class="nav-item" data-page="calendar"><span>Calendar</span><span></span></button>
+        <button class="nav-item" data-page="planner"><span>Study plan</span><span></span></button>
+      </nav>
+
+      <div class="sidebar-label">Courses</div>
+      <nav id="course-nav" class="course-nav" aria-label="Courses"></nav>
+
+      <div class="sidebar-footer">
+        <button class="quiet-button search-trigger" type="button">Search <kbd>⌘K</kbd></button>
+        <button class="quiet-button" type="button" data-page="settings">Settings</button>
+      </div>
+    </aside>
+
+    <header class="mobile-header">
+      <button class="wordmark" type="button" data-page="today">Ember</button>
+      <div class="mobile-header-actions">
+        <button class="quiet-button search-trigger" type="button">Search</button>
+      </div>
+    </header>
+
+    <main id="main" tabindex="-1"></main>
+
+    <nav class="mobile-nav" aria-label="Mobile pages">
+      <button class="is-active" data-page="today">Today</button>
+      <button data-page="tasks">Assignments</button>
+      <button data-page="calendar">Calendar</button>
+      <button data-page="planner">Study</button>
+    </nav>
+  </div>
+
+  <dialog id="search-dialog" class="overlay-dialog search-dialog">
+    <form method="dialog" id="search-form">
+      <label class="sr-only" for="global-search">Search tasks, courses, or pages</label>
+      <input id="global-search" autocomplete="off" placeholder="Search tasks, courses, or pages">
+      <div id="search-results" class="search-results"></div>
+      <div class="dialog-actions"><span>Enter to open · Esc to close</span><button value="cancel" class="text-button">Close</button></div>
+    </form>
+  </dialog>
+
+  <div id="voice-launcher-root"></div>
+
+  <dialog id="voice-command-dialog" class="voice-command-dialog" aria-labelledby="voice-command-title">
+    <div id="voice-command-root"></div>
+  </dialog>
+
+  <dialog id="planning-dialog" class="onboarding-dialog" aria-labelledby="setup-title">
+    <form id="planning-setup-form" method="dialog">
+      <aside class="setup-index" aria-label="Setup progress">
+        <span class="section-label">Workspace setup</span>
+        <ol>
+          <li data-step-indicator class="is-active">Planning window</li>
+          <li data-step-indicator>Meals</li>
+          <li data-step-indicator>Commitments</li>
+          <li data-step-indicator>Preferences</li>
+        </ol>
+      </aside>
+      <div class="setup-main">
+        <header class="setup-heading">
+          <span id="setup-step-label" class="section-label">01 / 04 · Planning window</span>
+          <h2 id="setup-title">Define the edges of your day</h2>
+        </header>
+        <div id="setup-content"></div>
+        <p id="setup-error" class="setup-error" role="alert" hidden></p>
+        <footer class="setup-actions">
+          <button class="text-button" type="button" data-setup-action="dismiss">Set up later</button>
+          <div>
+            <button class="text-button" type="button" data-setup-action="back" hidden>Back</button>
+            <button class="primary-button" type="button" data-setup-action="next">Continue</button>
+          </div>
+        </footer>
+      </div>
+    </form>
+  </dialog>
+
+  <aside id="detail-panel" class="detail-panel" aria-hidden="true" aria-label="Task details" inert></aside>
+  <div id="panel-scrim" class="panel-scrim" hidden></div>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <script type="module" src="main.jsx"></script>
+</body>
+</html>
