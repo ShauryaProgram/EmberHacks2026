@@ -19,3 +19,14 @@ Reading this as: a student planning workspace for daily study, with quiet Modern
 - The moving color beam is tied to a real microphone stream and only appears while the transcript is actively listening.
 - The transcript is the only content in the voice sheet. It does not imply task creation, search, or answer generation before those services exist.
 - The square transcript stage keeps V4 compatible with the quiet Modernist shell. V5 may revise shape and surface language as one coherent system.
+
+## V5 surface and task direction
+
+Reading this as: a focused student workspace with soft system surfaces, restrained color, and tactile completion, dial ENERGY 2 / RHYTHM 2 / MOTION 2.
+
+- Shape: 9px to 20px radii identify controls, major regions, and floating layers. Repeated task rows remain a flat list so the app does not become a tile grid.
+- Color: the page canvas shifts to a cool neutral while work surfaces remain white. Blue is reserved for primary actions and focus, red still means urgency, and course hues still identify course context.
+- Elevation: only the navigation/work regions and true overlays have shallow separation. Inner lists use spacing and hairlines.
+- Task motion: Checklist motion ties the box, tick, strike, and completion together. TodoTower uses physical movement to expose the consequence of removing work from a stack. Both use the app's real tasks and respect reduced motion.
+- Voice: the rounded Voice sheet is the only colorful glow. Its motion is driven by the live microphone stream and the content remains transcript-only.
+- Bencho token mapping: `fill-slab` maps to the local muted surface, `fill-on` to ink, `on-ink` to the work surface, `focus` to action blue, and edge/ink RGB values to the existing theme tokens. The mapping stays scoped to the task widgets.

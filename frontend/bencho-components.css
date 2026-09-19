@@ -1,0 +1,450 @@
+.task-widgets {
+  --card: var(--surface);
+  --fill-on: var(--ink);
+  --fill-on-rgb: var(--ink-rgb);
+  --fill-slab: var(--surface);
+  --focus: var(--action);
+  --font-ui: Archivo, system-ui, sans-serif;
+  --ink-4: var(--ink-3);
+  --on-ink: var(--surface);
+  --pane-edge: var(--hairline);
+}
+
+.chk {
+  box-sizing: border-box;
+  /* ── it opens, it does not jump ──────────────────────────
+     One row taller when you add a task, over a third of a
+     second. The component states its height rather than
+     letting the rows add up to it, which is what gives this
+     something to interpolate.
+
+     WITH THE OVERFLOW CLIPPED, which is what makes it read as
+     the card opening rather than as a box being resized around
+     things already sitting outside it: the new task takes the
+     empty slot the spare row was in, and the spare row is
+     revealed as the card grows to make it a new one. */
+  overflow: hidden;
+  transition: height 360ms cubic-bezier(0.22, 0.9, 0.28, 1);
+  /* the rows are in flow and stay in flow — the fall is a
+     transform on each of them, so nothing here is positioned.
+     What this is for now is the stacking context the heap's
+     z-order needs. */
+  position: relative;
+  background: var(--fill-slab, var(--card));
+  font-family: var(--font-ui);
+  color: var(--fill-on, var(--ink));}
+
+/* the hairline is the Stroke control's to give, the way it is
+   for every other block — a spread shadow rather than a
+   border, so it costs the card no layout */
+[data-stroke="on"] .chk {
+  box-shadow: 0 0 0 1px var(--pane-edge);}
+
+.chk-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  /* so the heap can be ordered. Rows land on each other and
+     the one that lands LAST is the top of the pile, which is
+     the opposite of the DOM order they are written in. */
+  position: relative;
+  /* NOTHING at the sides: the card's own padding is the inset,
+     and a second one here would put the box further in than
+     the card's edge says it is */
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  /* the ROW is the target, not the box. A 22px checkbox is a
+     22px hit area, and the words beside it are the part
+     anybody actually points at */
+  -webkit-tap-highlight-color: transparent;}
+
+/* ── the spare row ─────────────────────────────────────────
+   The one thing in this card that is not a task, and it has
+   to read that way at a glance or it is a fourth item you
+   have not ticked yet. So: the same geometry as a row, and a
+   third of the ink. It comes up on hover, and the field it
+   turns into sits at full strength — you are writing in it by
+   then, and a placeholder that stays faint while you type
+   reads as broken. */
+.chk-add {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  /* ── the same type as a task, set ONCE on the row ────────
+     Both the label and the field it turns into say `font:
+     inherit`, which was inheriting the card's — 16px at 400
+     with no tracking, against a task's 14 at 450. Next to
+     three lines of the smaller face the placeholder read as a
+     heading rather than as the next line of the list.
+
+     It goes on the row rather than on each of them because a
+     button and an input are the same line of text at two
+     moments, and a size stated twice is a size that will
+     disagree with itself later. See .chk-say, which is where
+     these three numbers come from. */
+  font-size: 14px;
+  font-weight: 450;
+  letter-spacing: -0.01em;
+  transition: opacity 200ms ease;}
+
+/* it keeps its space while the heap is down — removing it
+   would change the card's height in the middle of a fall */
+.chk-add[data-hide] {
+  opacity: 0;
+  pointer-events: none;}
+
+/* the box that is not a checkbox: the ring at a fraction of
+   its strength and nothing inside it. No dashes — a dashed
+   outline is a second idea about what "empty" looks like, and
+   this card already has one that works. */
+.chk-ghost {
+  flex: none;
+  box-shadow: inset 0 0 0 1.5px rgba(var(--fill-on-rgb, var(--ink-rgb)), 0.16);}
+
+.chk-new {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  /* `font: inherit` does not carry this: a button and an
+     input take letter-spacing from the UA sheet, not from
+     their parent, so the row's tracking stopped at them. */
+  letter-spacing: inherit;
+  text-align: left;
+  cursor: pointer;
+  opacity: 0.34;
+  transition: opacity 160ms ease;}
+
+.chk-new:hover { opacity: 0.62; }
+
+.chk-field {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  /* `font: inherit` does not carry this: a button and an
+     input take letter-spacing from the UA sheet, not from
+     their parent, so the row's tracking stopped at them. */
+  letter-spacing: inherit;
+  outline: none;}
+
+.chk-field::placeholder {
+  color: rgba(var(--fill-on-rgb, var(--ink-rgb)), 0.34);}
+
+/* ── on the floor ──────────────────────────────────────────
+   Opaque, and only once it has fallen. A row is a transparent
+   button for its whole life until the three of them are lying
+   against each other, and at that point transparency means two
+   tasks reading through each other at three degrees of
+   rotation — a mess rather than a heap.
+
+   ON A PSEUDO-ELEMENT, and inset, because the row's own box is
+   not the object that falls. A row is 40px tall so that the
+   whole line is a target; what you can SEE in it is about
+   twenty. Painting the full 40 and then stacking the slips
+   tight enough to touch means each one covers the top of the
+   words below it. The slip is the visible part — the
+   component sends its own inset down as --slip, since only it
+   knows how big the Box knob has made the contents.
+
+   Behind the words, not over them: the row carries a z-index
+   while it is fallen, which makes it a stacking context, so a
+   negative one here lands under its own contents and nothing
+   else. */
+.chk-row[data-fell]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--slip, 9px);
+  bottom: var(--slip, 9px);
+  border-radius: 10px;
+  background: var(--fill-slab, var(--card));
+  z-index: -1;}
+
+.chk-row:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(var(--fill-on-rgb, var(--ink-rgb)), 0.4);}
+
+/* ── the box ────────────────────────────────────────────────
+   The ring never changes. It is drawn once, at rest, and the
+   fill opens inside it — so what you see is a box being
+   filled in rather than one colour being swapped for another.
+   `overflow: hidden` is what keeps the fill's overshoot
+   inside the ring instead of past it. */
+.chk-box {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1.5px rgba(var(--fill-on-rgb, var(--ink-rgb)), 0.28);}
+
+.chk-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--fill-on, var(--ink));
+  /* from the middle out — an origin at a corner would read as
+     a panel sliding in rather than as the box filling */
+  transform-origin: center;}
+
+/* ── the tick ───────────────────────────────────────────────
+   Drawn rather than faded: `stroke-dashoffset` walks the
+   stroke on from its start, so the mark is made the way a
+   person makes it. It sits ON the fill and takes the fill's
+   own ground colour, which is why it can be full strength and
+   still be invisible until there is something under it. */
+.chk-tick {
+  position: relative;
+  width: 68%;
+  height: 68%;
+  overflow: visible;
+  fill: none;
+  stroke: var(--fill-slab, var(--card));
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;}
+
+.chk-say {
+  position: relative;
+  /* sized to the WORDS, not to the row: the rule is a scale of
+     this box, so a full-width span would strike out the empty
+     half of the line as well */
+  display: inline-block;
+  font-size: 14px;
+  font-weight: 450;
+  letter-spacing: -0.01em;
+  line-height: 1.2;}
+
+.chk-word { display: inline-block; }
+
+.chk-rule {
+  position: absolute;
+  left: 0;
+  right: 0;
+  /* on the type's own middle rather than the box's — a rule
+     centred on a line box sits low, because the box carries
+     the descender space and the letters do not */
+  top: 46%;
+  height: 1.5px;
+  border-radius: 2px;
+  background: currentColor;
+  transform-origin: left center;
+  pointer-events: none;}
+
+/* and the tower's bricks, by outline for the same reason the
+   card stack's are: they carry a box-shadow of their own, and
+   a 1px spread shadow in the same declaration would replace it
+   rather than join it. */
+[data-stroke="on"] .twr-card {
+  outline: 1px solid var(--pane-edge);
+  outline-offset: -1px;}
+
+/* ── the name, and it waits for the room ───────────────────
+   Small, quiet, and over a photograph — so it is white with a
+   shade under it rather than an ink token, because there is
+   no theme in which a photograph is light or dark. Its
+   opacity rides the same number the width does, set in the
+   component, so it cannot appear on a picture that has not
+   opened. */
+/* ── and NOTHING is drawn over a picture ───────────────────
+   `data-open` is written on the cell and nothing in this sheet
+   reads it, on purpose. The size is the state.
+
+   A brightness pass, a saturation pass, a dim on the others,
+   and a filename on a scrim in the corner of the open one were
+   all tried, and every one of them fights the single thing
+   this block says: the picture being looked at is the one you
+   can see more of. The caption was the worst of them, because
+   it could not be read over snow without a dark wash laid
+   across the bottom of the photograph it had just opened.
+
+   The attribute stays because it is the honest hook for
+   anybody who wants to hang something on it. */
+
+/* ══ Todo tower ═════════════════════════════════════════════
+   A list stacked like bricks, under gravity. The physics is in
+   Tower.tsx — free bodies in a box with a floor, not a column
+   of slots — and what is here is the brick: what a row is made
+   of, how it is pulled out, and the dent a landing puts in it.
+
+   Every position in this block comes from the loop. There is no
+   layout: the cards are absolutely placed by their own
+   coordinates and the DOM order never changes. */
+.twr {
+  position: relative;
+  -webkit-user-select: none;
+  user-select: none;}
+
+/* the pile is the floor's coordinate frame and nothing else —
+   a card's y is measured up from its bottom edge */
+.twr-pile {
+  position: absolute;
+  inset: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;}
+
+/* ── the row is the BODY, the card inside it is the thing ──
+   The split is load-bearing. The row's transform is rewritten
+   every frame by the loop — or by the hand, when there is one
+   on it — so nothing in this sheet may touch that property.
+   The card carries everything the loop does not: the dent on
+   landing and the slide out of the block, on `translate`,
+   `rotate` and `scale`, which are their own properties and
+   compose with a transform instead of replacing it.
+
+   Centred on the box, so a card's x of 0 is the middle of the
+   block and the lean is symmetrical about it. */
+.twr-row {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  margin-left: -85px;
+  /* ── a row is something you can pick up ───────────────────
+     Which means the browser must not also try to scroll the
+     page with the same finger. The honest cost: on a touch
+     screen a finger that lands on the pile cannot flick the
+     wall. Every draggable block here makes that trade. */
+  touch-action: none;}
+
+.twr-card {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 100%;
+  padding: 0 9px;
+  border-radius: 8px;
+  background: var(--fill-slab, var(--card));
+  /* the dent is anchored at the FOOT: a squash about the
+     middle is a card getting shorter at both ends, which is
+     not what landing on something does to it */
+  transform-origin: 50% 100%;
+  cursor: grab;
+  /* ── each theme separates them its own way ────────────────
+     Six identical rectangles lying on each other have to stay
+     six, and neither answer works in both themes. In LIGHT the
+     cards are a shade under the ground and the shadow does it —
+     tight and close, because a brick resting on a brick has
+     almost no air under it. In DARK a black shadow on a
+     near-black page separates nothing, and what does it is the
+     lit rim along the top. Both are always present and each is
+     nearly invisible in the theme that does not need it. */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.035),
+    0 1px 2px rgba(15, 23, 42, 0.11),
+    0 5px 12px -6px rgba(15, 23, 42, 0.14);
+  /* the slide out. NOT transform — see the note above. */
+  transition:
+    translate 260ms cubic-bezier(0.36, 0, 0.7, 0.2),
+    rotate 260ms cubic-bezier(0.36, 0, 0.7, 0.2),
+    opacity 200ms ease 60ms;}
+
+/* ── pulled out of the pile ────────────────────────────────
+   It goes sideways and it goes AFTER the tick, by 90ms — long
+   enough to see the box fill, short enough that it still reads
+   as one gesture. The pile does not wait for it: whatever was
+   resting on it lost its support on the same frame. */
+.twr-row[data-out] .twr-card {
+  translate: 118% 0;
+  rotate: 5deg;
+  opacity: 0;
+  transition-delay: 90ms, 90ms, 150ms;}
+
+/* ── in hand ───────────────────────────────────────────────
+   Off the pile, so it casts what a thing held above a surface
+   casts: further, softer and wider than the tight shadow a
+   brick resting on a brick has. The lift is two pixels and it
+   rides `translate`, because the row's own transform is the
+   pointer's while this is on.
+
+   No hover state anywhere in this block, on purpose. A row
+   that lit up under the cursor would be promising something
+   the row does not do; what it does is come away in your hand,
+   and the cursor says so. */
+.twr-row[data-hand] {
+  z-index: 3;}
+
+.twr-row[data-hand] .twr-card {
+  cursor: grabbing;
+  translate: 0 -2px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.09),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 2px 6px rgba(15, 23, 42, 0.1),
+    0 14px 26px -8px rgba(15, 23, 42, 0.26);}
+
+/* ── the box, and it is deliberately quiet ─────────────────
+   There is a checklist block on this bench and it is about the
+   box: the swell, the tick, the rule drawn through the words.
+   This one is about what happens to everything else, so the
+   box is the smallest thing that can still be pressed. */
+.twr-check {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  box-shadow: inset 0 0 0 1.25px rgba(var(--ink-rgb), 0.22);
+  color: var(--on-ink);
+  cursor: pointer;
+  transition:
+    background-color 140ms ease,
+    box-shadow 140ms ease;}
+
+.twr-check svg {
+  opacity: 0;
+  transition: opacity 110ms ease;}
+
+.twr-check:hover {
+  box-shadow: inset 0 0 0 1.25px rgba(var(--ink-rgb), 0.38);}
+
+.twr-row[data-out] .twr-check {
+  background: var(--fill-on, var(--ink));
+  box-shadow: inset 0 0 0 1.25px var(--fill-on, var(--ink));}
+
+.twr-row[data-out] .twr-check svg { opacity: 1; }
+
+.twr-check:focus-visible {
+  outline: 2px solid var(--focus, #4c8dff);
+  outline-offset: 2px;}
+
+.twr-text {
+  font-size: 11px;
+  line-height: 1;
+  letter-spacing: -0.005em;
+  color: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;}
+
+/* struck through as it leaves, so the row says what happened
+   to it rather than simply disappearing */
+.twr-row[data-out] .twr-text {
+  text-decoration: line-through;
+  color: var(--ink-4);}
+
+@media (prefers-reduced-motion: reduce) {
+  .twr-card { transition-duration: 1ms, 1ms, 1ms; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .twr-check, .twr-check svg { transition-duration: 1ms; }
+}

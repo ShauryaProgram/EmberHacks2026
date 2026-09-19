@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { VoiceBeam, useMicrophone } from "voice-glow";
+import { TaskWidgets } from "./components/TaskWidgets.jsx";
+import "./bencho-components.css";
 import "./voice-input.css";
 import "./app.js";
 
@@ -164,7 +166,7 @@ function VoiceTranscript() {
     <div className="dialog-heading voice-transcript-heading">
       <div>
         <span className="section-label">Voice</span>
-        <h2 id="voice-command-title">Transcript</h2>
+        <h2 id="voice-command-title">Voice</h2>
       </div>
       <button className="icon-button" type="button" onClick={() => document.querySelector("#voice-command-dialog")?.close()}>Close</button>
     </div>
@@ -176,7 +178,7 @@ function VoiceTranscript() {
       active={live}
       colorVariant="colorful"
       theme={theme}
-      borderRadius={0}
+      borderRadius={18}
       strength={0.62}
       idle={live ? 0.07 : 0}
       flow={34}
@@ -195,3 +197,19 @@ function VoiceTranscript() {
 
 const voiceRoot = document.querySelector("#voice-command-root");
 if (voiceRoot) createRoot(voiceRoot).render(<VoiceTranscript />);
+
+let taskWidgetRoot = null;
+window.semesterRenderTaskWidgets = (host, tasks) => {
+  if (!host) return;
+  if (!taskWidgetRoot || taskWidgetRoot.host !== host) {
+    taskWidgetRoot?.root.unmount();
+    taskWidgetRoot = { host, root: createRoot(host) };
+  }
+  taskWidgetRoot.root.render(
+    <TaskWidgets
+      tasks={tasks}
+      onToggle={(id) => window.dispatchEvent(new CustomEvent("semester:widget-toggle", { detail: { id } }))}
+    />,
+  );
+};
+window.dispatchEvent(new Event("semester:task-widgets-ready"));

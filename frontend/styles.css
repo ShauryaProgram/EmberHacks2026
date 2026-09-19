@@ -1,4 +1,9 @@
 :root {
+  --canvas: #f3f4f6;
+  --surface: #fff;
+  --surface-muted: #f5f6f8;
+  --action: #1769e0;
+  --ink-rgb: 23, 22, 21;
   --ground: #fff;
   --ink: #171615;
   --ink-2: #5f5b58;
@@ -20,6 +25,11 @@
 }
 
 [data-theme="dark"] {
+  --canvas: #0b0b0d;
+  --surface: #151517;
+  --surface-muted: #202024;
+  --action: #6ba4ff;
+  --ink-rgb: 241, 239, 237;
   --ground: #131211;
   --ink: #f1efed;
   --ink-2: #b2ada9;
@@ -267,4 +277,76 @@ main { min-width: 0; overflow-y: auto; }
 
 @media (prefers-reduced-motion: reduce) {
   .detail-panel { transition: none; }
+}
+
+/* V5 uses two soft structural surfaces to separate navigation from work.
+   Inner lists stay flat so the hierarchy does not become a card grid. */
+html, body { background: var(--canvas); }
+.app-shell { gap: 12px; padding: 12px; background: var(--canvas); }
+.sidebar, main { background: var(--surface); border-radius: 20px; }
+.sidebar { border-right: 0; box-shadow: 0 0 0 1px var(--hairline); }
+main { box-shadow: 0 0 0 1px var(--hairline); }
+.week-index { border-bottom-width: 1px; }
+.nav-item, .course-item, .quiet-button, .text-button, .icon-button { border-radius: 9px; }
+.nav-item.is-active, .course-item.is-active { background: var(--active); }
+.primary-button {
+  border: 0;
+  border-radius: 10px;
+  background: var(--action);
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(23, 22, 21, 0.12);
+}
+.task-row { margin: 0 -8px; padding-right: 8px; padding-left: 8px; border-radius: 11px; }
+.task-list { border-bottom: 0; }
+.row-actions { right: 8px; background: var(--surface); border-radius: 8px; }
+.line-input, .line-select {
+  border: 0;
+  border-radius: 10px;
+  background: var(--surface-muted);
+  padding: 9px 11px;
+}
+.overlay-dialog { border-radius: 20px; background: var(--surface); overflow: hidden; }
+.overlay-dialog input, .overlay-dialog select { border-radius: 8px; }
+.detail-panel { top: 12px; right: 12px; bottom: 12px; border-radius: 20px; background: var(--surface); }
+.detail-actions { background: var(--surface); }
+.toast { border-radius: 10px; }
+
+.tasks-page { width: min(100%, 1210px); }
+.tasks-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 52px; align-items: start; }
+.tasks-list-column { min-width: 0; }
+.task-widgets-root { position: sticky; top: 36px; min-width: 0; margin-top: 44px; }
+.task-widgets { display: grid; gap: 16px; }
+.task-widget { overflow: hidden; padding: 18px; border-radius: 18px; background: var(--surface-muted); }
+.task-widget-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+.task-widget-heading h2 { margin: 3px 0 0; font-size: 17px; line-height: 1.2; letter-spacing: -0.025em; }
+.task-widget-heading > span { color: var(--ink-3); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.task-widget-note { margin: -2px 0 14px; color: var(--ink-3); font-size: 12.5px; line-height: 1.45; }
+.task-widget-empty { display: grid; gap: 4px; padding: 20px; border-radius: 18px; background: var(--surface-muted); }
+.task-widget-empty span { color: var(--ink-3); }
+.checklist-widget .chk { max-width: 100%; }
+.task-tower-frame { display: grid; place-items: end center; min-height: 180px; overflow: hidden; }
+.tower-widget .twr { transform: scale(0.9); transform-origin: center bottom; }
+
+@media (max-width: 1060px) {
+  .tasks-layout { grid-template-columns: minmax(0, 1fr) 300px; gap: 34px; }
+  .task-widget { padding: 14px; }
+  .tower-widget .twr { transform: scale(0.78); }
+}
+
+@media (max-width: 920px) {
+  .tasks-layout { grid-template-columns: 1fr; }
+  .task-widgets-root { position: static; order: -1; margin-top: 32px; }
+  .task-widgets { grid-template-columns: 1fr; }
+  .tasks-list-column { margin-top: 32px; }
+}
+
+@media (max-width: 760px) {
+  .app-shell { padding: 0; }
+  main { border-radius: 0; box-shadow: none; }
+  .mobile-header { background: color-mix(in srgb, var(--surface) 94%, transparent); }
+  .tasks-layout { display: block; }
+  .task-widgets { grid-template-columns: 1fr; }
+  .task-widgets-root { margin-top: 28px; }
+  .task-widget { border-radius: 16px; }
+  .detail-panel { top: 0; right: 0; bottom: 0; border-radius: 20px 0 0 20px; }
 }
