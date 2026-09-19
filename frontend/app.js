@@ -93,9 +93,9 @@ function renderToday() {
   main.innerHTML = `<section class="page today-page">
     ${pageHeader("Today", "Saturday, September 19")}
     <div class="day-ledger" aria-label="Day summary"><div class="ledger-item"><span>Open today</span><strong>${today.length + overdue.length} tasks</strong></div><div class="ledger-item"><span>Planned focus</span><strong>${duration(planned)}</strong></div><div class="ledger-item"><span>Next class</span><strong>Monday, 9:00 AM</strong></div></div>
-    ${overdue.length ? `<section class="section"><div class="section-head"><h2 class="section-label urgent">Overdue</h2><span class="section-count">${overdue.length}</span></div><div class="task-list">${overdue.map(task => row(task)).join("")}</div></section>` : ""}
-    <section class="section"><div class="section-head"><h2 class="section-label">To do</h2><span class="section-count">${today.length}</span></div>${today.length ? `<div class="task-list">${today.map(task => row(task)).join("")}</div>` : `<div class="empty-state"><h2>Today is clear.</h2><p>Add a task or use the planner to bring work forward.</p><button class="primary-button" data-action="quick-add">Add a task</button></div>`}</section>
-    <section class="section"><div class="section-head"><h2 class="section-label">Blocked out</h2></div><div class="schedule-list">${blocks.map(event => `<div class="schedule-row"><span class="schedule-time">${clock(event.start)} to ${clock(event.end)}</span><span>${event.title}<span class="schedule-course">${courseFor(event.course).code}</span></span></div>`).join("")}</div></section>
+    <div class="today-grid"><div>${overdue.length ? `<section class="section"><div class="section-head"><h2 class="section-label urgent">Overdue</h2><span class="section-count">${overdue.length}</span></div><div class="task-list">${overdue.map(task => row(task)).join("")}</div></section>` : ""}
+    <section class="section"><div class="section-head"><h2 class="section-label">To do</h2><span class="section-count">${today.length}</span></div>${today.length ? `<div class="task-list">${today.map(task => row(task)).join("")}</div>` : `<div class="empty-state"><h2>Today is clear.</h2><p>Add a task or use the planner to bring work forward.</p><button class="primary-button" data-action="quick-add">Add a task</button></div>`}</section></div>
+    <aside class="today-schedule"><div class="today-schedule-head"><h2 class="section-label">Day plan</h2><span class="section-count">${blocks.length}</span></div>${blocks.map(event => { const course = courseFor(event.course); return `<div class="timeline-block" style="--course-color:${colorVars(course).solid}"><time>${clock(event.start)} to ${clock(event.end)}</time><strong>${event.title}</strong><span>${course.code}</span></div>`; }).join("")}</aside></div>
   </section>`;
 }
 
@@ -110,11 +110,14 @@ function renderTasks() {
   const priorityOrder = { High: 0, Medium: 1, Low: 2 };
   tasks = tasks.slice().sort((a, b) => state.sort === "Priority" ? priorityOrder[a.priority] - priorityOrder[b.priority] : state.sort === "Estimate" ? b.estimate - a.estimate : dueOrder[a.due] - dueOrder[b.due]);
   const tabs = ["All", "Today", "Upcoming", "Completed"].map(tab => `<button class="tab-button ${state.tab === tab ? "is-active" : ""}" data-tab="${tab}">${tab}</button>`).join("");
+  const groupFor = task => task.done ? "Completed" : task.due === "overdue" ? "Overdue" : task.due === "today" ? "Today" : "Upcoming";
+  const groupNames = state.tab === "All" ? ["Overdue", "Today", "Upcoming"] : [state.tab];
+  const groups = groupNames.map(name => ({ name, tasks: tasks.filter(task => groupFor(task) === name) })).filter(group => group.tasks.length);
   main.innerHTML = `<section class="page">
     ${pageHeader("Tasks", `${openTasks().length} open · ${state.tasks.filter(task => task.done).length} completed`)}
     <div class="tab-bar" role="tablist">${tabs}</div>
     <div class="task-tools"><input class="line-input" id="task-search" aria-label="Search tasks" placeholder="Search tasks" value="${state.query}"><select class="line-select" id="sort-tasks" aria-label="Sort tasks"><option${state.sort === "Due" ? " selected" : ""}>Due</option><option${state.sort === "Priority" ? " selected" : ""}>Priority</option><option${state.sort === "Estimate" ? " selected" : ""}>Estimate</option></select><span class="section-count">${tasks.length} shown</span></div>
-    <section class="section">${tasks.length ? `<div class="task-list">${tasks.map(task => row(task)).join("")}</div>` : `<div class="empty-state"><h2>No matching tasks.</h2><p>Clear the search or add work to this view.</p><button class="primary-button" data-action="quick-add">Add a task</button></div>`}</section>
+    <section class="section">${tasks.length ? groups.map(group => `<div class="task-group"><div class="section-head"><h2 class="section-label ${group.name === "Overdue" ? "urgent" : ""}">${group.name}</h2><span class="section-count">${group.tasks.length}</span></div><div class="task-list">${group.tasks.map(task => row(task)).join("")}</div></div>`).join("") : `<div class="empty-state"><h2>No matching tasks.</h2><p>Clear the search or add work to this view.</p><button class="primary-button" data-action="quick-add">Add a task</button></div>`}</section>
   </section>`;
 }
 
