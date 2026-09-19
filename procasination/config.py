@@ -32,6 +32,10 @@ DEFAULT_SENSITIVE_APPS = (
 class ProcrastinationSettings:
     """Tunables for the watcher. All optional; every default is demo-ready."""
 
+    # Demo mode intentionally treats an otherwise ambiguous generic YouTube
+    # page as off-task so a short product demo can exercise the nudge path.
+    demo_mode: bool = os.getenv("PROCRASTINATION_DEMO_MODE", "0") == "1"
+
     # Models. Both must be Gemini on OpenRouter.
     text_model: str = os.getenv("PROCRASTINATION_TEXT_MODEL", "google/gemini-3.1-flash-lite")
     vision_model: str = os.getenv("PROCRASTINATION_VISION_MODEL", "google/gemini-3.8-flash")

@@ -1,4 +1,4 @@
-.PHONY: setup build run dev test
+.PHONY: setup build run dev reset-demo test
 
 setup:
 	cd backend && $(MAKE) setup
@@ -13,6 +13,9 @@ run: build
 dev:
 	@printf '%s\n' 'Run "make run" for the complete app at http://127.0.0.1:8766.'
 	@printf '%s\n' 'For frontend hot reload, run "npm run dev --prefix frontend" beside the combined server.'
+
+reset-demo:
+	PYTHONPATH=backend:. backend/.venv/bin/python -m procasination.reset_demo
 
 test:
 	backend/.venv/bin/pytest -q backend/tests

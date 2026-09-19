@@ -86,6 +86,14 @@ function pageHeader(title, subtitle) { return `<header class="page-header"><div>
 /* Planning constraints (v5 setup wizard). The complete profile is persisted by
    the backend; localStorage is only a fast cache for first paint. */
 function persistPlanning() { localStorage.setItem("ember-planning-profile", JSON.stringify(state.planning)); }
+function clearOnboardingState() {
+  localStorage.removeItem("ember-planning-profile");
+  localStorage.removeItem("ember-planning-dismissed");
+  state.onboarded = false; state.profile = null;
+  state.planning = normalizePlanningProfile(null);
+  state.courses = []; state.assignments = []; state.events = []; state.courseId = null;
+  if (planningDialog?.open) planningDialog.close();
+}
 function weekdayIndex(date) { return (new Date(date).getDay() + 6) % 7; }
 function timeToMinutes(value) { const [h, m] = String(value || "").split(":").map(Number); return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : 0; }
 function minutesToTime(value) { return `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`; }
@@ -142,6 +150,11 @@ const planningSetup = createOnboarding({
   onDismiss() { localStorage.setItem("ember-planning-dismissed", "true"); }
 });
 
+function openPlanningSetupIfNeeded() {
+  if (!state.onboarded || state.planning.completed || localStorage.getItem("ember-planning-dismissed") === "true") return;
+  requestAnimationFrame(() => planningSetup.open(state.planning));
+}
+
 function protectedBlock(entry) {
   return `<div class="agenda-row is-protected"><time>${clock(entry.start)}<small>${clock(entry.end)}</small></time><i class="agenda-mark" style="--course-color:var(--ink-3)"></i><div class="agenda-copy"><strong>${escapeHTML(entry.title)}</strong><span>${escapeHTML(entry.category)} · Protected</span></div></div>`;
 }
@@ -163,7 +176,7 @@ function eventBlock(event) {
 
 function focusPanel() {
   const focus = state.focus;
-  if (!focus) return `<section class="focus-strip is-warning"><div><span class="section-label">Focus watcher</span><strong>Unavailable</strong></div><p>Start the combined Ember server to enable study-hour monitoring.</p></section>`;
+  if (!focus) return `<section class="focus-strip is-warning"><div><span class="section-label">Focus watcher</span><strong>Unavailable</strong></div><p>Start the combined Ordo server to enable study-hour monitoring.</p></section>`;
   if (!focus.enabled) return `<section class="focus-strip is-muted"><div><span class="section-label">Focus watcher</span><strong>Paused</strong></div><button class="text-button" data-action="focus-enable">Enable</button></section>`;
   if (focus.watching) {
     const current = focus.current; const verdict = current?.verdict ? current.verdict.replace("_", " ") : "checking";
@@ -173,10 +186,10 @@ function focusPanel() {
   return `<section class="focus-strip"><div><span class="section-label">Focus watcher</span><strong>Ready for study hours</strong></div><p>${next ? `Next: ${escapeHTML(next.title)} · ${escapeHTML(dateTime(next.start_at))}` : "No upcoming study block is scheduled."}</p></section>`;
 }
 
-function renderLoading() { main.innerHTML = `<section class="page"><div class="loading-state"><span class="section-label">Ember</span><h1>Connecting your semester</h1><p>Loading Quercus, your calendar, and the focus watcher.</p></div></section>`; }
+function renderLoading() { main.innerHTML = `<section class="page"><div class="loading-state"><span class="section-label">Ordo</span><h1>Connecting your semester</h1><p>Loading Quercus, your calendar, and the focus watcher.</p></div></section>`; }
 function renderOnboarding() {
   document.querySelector("#course-nav").innerHTML = "";
-  main.innerHTML = `<section class="page onboarding-page"><span class="section-label">One-time setup</span><h1 class="onboarding-title">Connect Quercus to Ember</h1><p class="onboarding-copy">Create a Quercus access token under Account, Settings, Approved Integrations. Ember verifies it directly with U of T and encrypts it on this Mac.</p><form id="onboarding-form" class="onboarding-form"><label><span class="field-label">Quercus API token</span><input name="token" type="password" autocomplete="off" required minlength="10" placeholder="Paste your token"></label><label><span class="field-label">Timezone</span><input name="timezone" value="America/Toronto" required></label><button class="primary-button" type="submit">Connect and sync</button>${state.error ? `<p class="form-error" role="alert">${escapeHTML(state.error)}</p>` : ""}</form><p class="privacy-note">The token never enters the browser again after setup. Screen monitoring starts only inside a generated study block.</p></section>`;
+  main.innerHTML = `<section class="page onboarding-page"><span class="section-label">One-time setup</span><h1 class="onboarding-title">Connect Quercus to Ordo</h1><p class="onboarding-copy">Create a Quercus access token under Account, Settings, Approved Integrations. Ordo verifies it directly with U of T and encrypts it on this Mac.</p><form id="onboarding-form" class="onboarding-form"><label><span class="field-label">Quercus API token</span><input name="token" type="password" autocomplete="off" required minlength="10" placeholder="Paste your token"></label><label><span class="field-label">Timezone</span><input name="timezone" value="America/Toronto" required></label><button class="primary-button" type="submit">Connect and sync</button>${state.error ? `<p class="form-error" role="alert">${escapeHTML(state.error)}</p>` : ""}</form><p class="privacy-note">The token never enters the browser again after setup. Screen monitoring starts only inside a generated study block.</p></section>`;
 }
 
 function renderToday() {
@@ -325,7 +338,10 @@ async function loadData({ quiet = false } = {}) {
   if (!quiet) { state.loading = true; render(); }
   try {
     const onboarding = await api("/api/onboarding/status"); state.onboarded = onboarding.onboarded; state.profile = onboarding.profile || null;
-    if (!state.onboarded) return;
+    if (!state.onboarded) {
+      clearOnboardingState();
+      return;
+    }
     const start = state.weekStart.toISOString(); const end = addDays(state.weekStart, 7).toISOString();
     const results = await Promise.allSettled([api("/api/courses"), api("/api/assignments?include_completed=true"), api(`/api/calendar/events?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`), api("/api/study/settings"), api("/api/sync/status"), api("/api/procrastination/status")]);
     const [courses, assignments, events, settings, sync, focus] = results;
@@ -349,7 +365,7 @@ async function loadData({ quiet = false } = {}) {
     const failure = results.slice(0, 5).find(r => r.status === "rejected"); if (failure) throw failure.reason;
     await refreshPushState();
     if (!state.courseId && state.courses.length) state.courseId = state.courses[0].id; state.error = "";
-  } catch (error) { state.error = error.message || "Could not connect to Ember."; if (quiet) notify(state.error, true); }
+  } catch (error) { state.error = error.message || "Could not connect to Ordo."; if (quiet) notify(state.error, true); }
   finally { state.loading = false; render(); }
 }
 
@@ -402,7 +418,12 @@ main.addEventListener("change", event => {
 main.addEventListener("submit", async event => {
   event.preventDefault(); const data = new FormData(event.target);
   try {
-    if (event.target.id === "onboarding-form") { await api("/api/onboarding", { method: "POST", body: JSON.stringify({ quercus_api_token: data.get("token"), timezone: data.get("timezone"), reminder_offsets_days: [7, 3, 1] }) }); notify("Connected. Initial sync is running."); await loadData(); }
+    if (event.target.id === "onboarding-form") {
+      await api("/api/onboarding", { method: "POST", body: JSON.stringify({ quercus_api_token: data.get("token"), timezone: data.get("timezone"), reminder_offsets_days: [7, 3, 1] }) });
+      notify("Connected. Initial sync is running.");
+      await loadData();
+      openPlanningSetupIfNeeded();
+    }
     if (event.target.id === "study-settings-form") { await api("/api/study/settings", { method: "PATCH", body: JSON.stringify(Object.fromEntries(data.entries())) }); notify("Study hours saved and plan rebuilt"); await loadData({ quiet: true }); }
   } catch (error) { state.error = error.message; notify(error.message, true); render(); }
 });
@@ -432,11 +453,16 @@ window.semesterSubmitNaturalLanguage = async text => {
 };
 panelScrim.addEventListener("click", closeDetail);
 document.addEventListener("keydown", event => { const modifier = event.metaKey || event.ctrlKey; if (modifier && event.key.toLowerCase() === "k") { event.preventDefault(); searchDialog.showModal(); document.querySelector("#global-search").focus(); renderSearch(""); } if (modifier && event.key.toLowerCase() === "j" && state.onboarded) { event.preventDefault(); window.semesterOpenVoiceCommand?.(); } if (event.key === "Escape") closeDetail(); });
-setInterval(async () => { if (!state.onboarded || document.hidden) return; try { state.focus = await api("/api/procrastination/status"); state.sync = await api("/api/sync/status"); if (["today", "settings"].includes(state.page)) render(); } catch { /* keep last known state */ } }, 15000);
+setInterval(async () => {
+  if (document.hidden) return;
+  try {
+    const onboarding = await api("/api/onboarding/status");
+    if (!onboarding.onboarded) { clearOnboardingState(); render(); return; }
+    if (!state.onboarded) { await loadData(); return; }
+    state.focus = await api("/api/procrastination/status"); state.sync = await api("/api/sync/status");
+    if (["today", "settings"].includes(state.page)) render();
+  } catch { /* keep last known state */ }
+}, 15000);
 
 render();
-void loadData().then(() => {
-  if (state.onboarded && !state.planning.completed && localStorage.getItem("ember-planning-dismissed") !== "true") {
-    requestAnimationFrame(() => planningSetup.open(state.planning));
-  }
-});
+void loadData().then(openPlanningSetupIfNeeded);

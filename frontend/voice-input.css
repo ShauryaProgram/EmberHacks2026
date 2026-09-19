@@ -6,22 +6,43 @@
   left: 50%;
   bottom: 22px;
   z-index: 32;
+  isolation: isolate;
   display: flex;
   align-items: center;
   gap: 9px;
   min-height: 42px;
   padding: 5px 8px 5px 6px;
-  border: 1px solid var(--rule);
+  border: 1px solid transparent;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--ground) 92%, transparent);
+  background:
+    linear-gradient(color-mix(in srgb, var(--ground) 94%, transparent), color-mix(in srgb, var(--ground) 94%, transparent)) padding-box,
+    conic-gradient(from 210deg, #eb5a46, #efb63f, #62b57d, #4d9fd8, #8b6fd1, #dc609f, #eb5a46) border-box;
   color: var(--ink);
-  box-shadow: 0 8px 28px rgba(23, 22, 21, 0.14);
+  box-shadow:
+    0 8px 28px rgba(23, 22, 21, 0.14),
+    -8px 6px 18px rgba(235, 90, 70, 0.08),
+    8px 6px 18px rgba(77, 159, 216, 0.1);
   backdrop-filter: blur(14px);
   transform: translateX(-50%);
 }
 
+.voice-island::before {
+  position: absolute;
+  inset: -5px;
+  z-index: -1;
+  border-radius: inherit;
+  background: conic-gradient(from 0deg, #eb5a46, #efb63f, #62b57d, #4d9fd8, #8b6fd1, #dc609f, #eb5a46);
+  content: "";
+  opacity: 0.18;
+  filter: blur(10px) hue-rotate(0deg);
+  animation: voice-spectrum-spin 8s linear infinite;
+}
+
 .voice-island:hover {
-  border-color: var(--ink-3);
+  box-shadow:
+    0 10px 32px rgba(23, 22, 21, 0.16),
+    -12px 8px 24px rgba(235, 90, 70, 0.14),
+    12px 8px 24px rgba(77, 159, 216, 0.16);
   transform: translateX(-50%) translateY(-2px);
 }
 
@@ -31,12 +52,21 @@
   height: 30px;
   place-items: center;
   border-radius: 50%;
-  background: var(--ink);
-  color: var(--ground);
+  background: conic-gradient(from 190deg, #dc609f, #8b6fd1, #4d9fd8, #62b57d, #efb63f, #eb5a46, #dc609f);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
 }
 
 .voice-island > span:nth-child(2) { font-size: 12.5px; font-weight: 600; white-space: nowrap; }
 .voice-island kbd { padding-left: 5px; font-size: 10.5px; }
+
+@keyframes voice-spectrum-spin {
+  to { filter: blur(10px) hue-rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .voice-island::before { animation: none; }
+}
 
 body:has(#voice-command-dialog[open]) .voice-island {
   opacity: 0;

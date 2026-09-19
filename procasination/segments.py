@@ -242,6 +242,16 @@ def prefilter(segment: Segment, settings: ProcrastinationSettings) -> Optional[D
             "decided_by": "prefilter",
         }
     host = _registrable(segment.host)
+    title = normalized_title(stable_title(segment.window_title))
+    if settings.demo_mode and (host == "youtube.com" or "youtube" in title):
+        return {
+            "verdict": "off_task",
+            "confidence": 100,
+            "category": "entertainment",
+            "reason": "Demo mode treats YouTube as off-task.",
+            "needs_visual": False,
+            "decided_by": "prefilter",
+        }
     if host and host in ON_TASK_HOSTS:
         return {
             "verdict": "on_task",

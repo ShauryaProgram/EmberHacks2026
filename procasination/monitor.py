@@ -496,6 +496,7 @@ class ProcrastinationMonitor:
         if self.idle_threshold_seconds == self.settings.idle_threshold_seconds:
             return self.settings
         return ProcrastinationSettings(
+            demo_mode=self.settings.demo_mode,
             text_model=self.settings.text_model,
             vision_model=self.settings.vision_model,
             sample_interval_seconds=self.settings.sample_interval_seconds,

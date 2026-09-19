@@ -149,6 +149,7 @@ def reading(app: str, title: str = "", url: str = "", idle: int = 0, sensitive: 
 
 def build(db: Database, capture: FakeCapture, client: FakeClient, **overrides) -> ProcrastinationMonitor:
     settings = ProcrastinationSettings(
+        demo_mode=overrides.pop("demo_mode", False),
         sample_interval_seconds=overrides.pop("sample_interval_seconds", 60),
         verdict_interval_seconds=0,
         nudge_after_seconds=overrides.pop("nudge_after_seconds", 90),

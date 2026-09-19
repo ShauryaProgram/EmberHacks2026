@@ -1,10 +1,10 @@
-# Ember frontend
+# Ordo frontend
 
 ## Versions
 
 - `v1/Semester Workspace.dc.html` is the original UI exactly as supplied. It depends on the original custom design-runtime files referenced by that document.
 - `v2/` preserves the standalone quiet Modernist redesign that the current shell grew out of.
-- `index.html`, `styles.css`, and `app.js` are the active workspace. The V5 interface keeps the v2 shell and adds a daily briefing, persistent Voice controls, and constraint-aware planning setup on top of the live Ember backend.
+- `index.html`, `styles.css`, and `app.js` are the active workspace. The V5 interface keeps the v2 shell and adds a daily briefing, persistent Voice controls, and constraint-aware planning setup on top of the live Ordo backend.
 
 ## Develop
 
@@ -29,7 +29,7 @@ calendar events, and study sessions come from `/api/courses`,
 `/api/assignments`, `/api/calendar/events`, and the study planner. Assignment
 completion is owned by Quercus and is read-only here.
 
-Use the persistent **Speak to Ember** control, press Command J on macOS, or press
+Use the persistent **Speak to Ordo** control, press Command J on macOS, or press
 Control J elsewhere to open the voice console and dictate a personal calendar
 command. The transcript remains editable, so requests can also be typed when
 browser speech recognition is unavailable. **Send** can create one-time or recurring

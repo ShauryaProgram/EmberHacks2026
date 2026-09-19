@@ -49,6 +49,7 @@ class StudyPlanner:
         with self.db.transaction() as connection:
             connection.execute(
                 """DELETE FROM calendar_events WHERE source_type='study_plan'
+                   AND source_key NOT LIKE 'study:demo:%'
                    AND start_at>=? AND start_at<? AND status!='completed'""",
                 (iso(replace_start), iso(range_end)),
             )

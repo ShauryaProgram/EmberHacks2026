@@ -1,7 +1,7 @@
 self.addEventListener("push", event => {
   let payload = {};
   try { payload = event.data ? event.data.json() : {}; } catch { payload = { body: event.data?.text() || "" }; }
-  event.waitUntil(self.registration.showNotification(payload.title || "Ember reminder", {
+  event.waitUntil(self.registration.showNotification(payload.title || "Ordo reminder", {
     body: payload.body || "You have an upcoming study commitment.",
     tag: payload.tag || "ember-reminder",
     data: payload.data || { url: "/" }

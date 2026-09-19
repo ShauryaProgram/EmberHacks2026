@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { ArrowUp, Mic, Square, X } from "lucide-react";
-import { VoiceBeam, useMicrophone } from "voice-glow";
+import { VoiceBeam } from "voice-glow";
 import "./voice-input.css";
 import "./app.js";
 
@@ -9,16 +9,19 @@ function getSpeechRecognition() {
   return window.SpeechRecognition || window.webkitSpeechRecognition;
 }
 
+function usesSafariSpeechRecognition() {
+  return /Apple/i.test(navigator.vendor || "") && /Safari/i.test(navigator.userAgent || "");
+}
+
 function VoiceTranscript() {
-  const microphone = useMicrophone();
-  const { stream, state: microphoneState, start: startMicrophone, stop: stopMicrophone } = microphone;
   const recognitionRef = useRef(null);
   const finalTranscriptRef = useRef("");
   const transcriptRef = useRef("");
   const transcriptAreaRef = useRef(null);
   const responseAreaRef = useRef(null);
   const clarificationContextRef = useRef(null);
-  const autoResumeRef = useRef(false);
+  const captureWantedRef = useRef(false);
+  const recognitionTimerRef = useRef(null);
   const [captureState, setCaptureState] = useState("idle");
   const [transcript, setTranscript] = useState("");
   const [message, setMessage] = useState("Press ⌘J to begin.");
@@ -26,24 +29,30 @@ function VoiceTranscript() {
   const [submitting, setSubmitting] = useState(false);
   const [theme, setTheme] = useState(() => document.documentElement.dataset.theme === "dark" ? "dark" : "light");
 
+  const clearRecognitionTimer = useCallback(() => {
+    if (recognitionTimerRef.current) clearTimeout(recognitionTimerRef.current);
+    recognitionTimerRef.current = null;
+  }, []);
+
   const releaseRecognition = useCallback(() => {
+    clearRecognitionTimer();
     const recognition = recognitionRef.current;
     recognitionRef.current = null;
     if (recognition) {
       recognition.onend = null;
-      recognition.stop();
+      recognition.abort();
     }
-  }, []);
+  }, [clearRecognitionTimer]);
 
   const stopCapture = useCallback((nextMessage = "Transcript paused.") => {
+    captureWantedRef.current = false;
     releaseRecognition();
-    stopMicrophone();
     setCaptureState("idle");
     setMessage(nextMessage);
-  }, [releaseRecognition, stopMicrophone]);
+  }, [releaseRecognition]);
 
-  const startCapture = useCallback(async ({ preserveFeedback = false } = {}) => {
-    if (captureState === "starting" || captureState === "live") return;
+  const startCapture = useCallback(({ preserveFeedback = false, retryCount = 0 } = {}) => {
+    if (recognitionRef.current) return;
 
     const Recognition = getSpeechRecognition();
     if (!Recognition) {
@@ -53,78 +62,129 @@ function VoiceTranscript() {
       return;
     }
 
+    captureWantedRef.current = true;
     setCaptureState("starting");
     if (!preserveFeedback && !clarificationContextRef.current) setFeedback(null);
-    setMessage("Starting microphone.");
+    setMessage(retryCount ? "Retrying dictation." : "Starting microphone.");
 
     const recognition = new Recognition();
-    recognition.continuous = true;
+    const safariSpeech = usesSafariSpeechRecognition();
+    recognition.continuous = !safariSpeech;
     recognition.interimResults = true;
     recognition.lang = navigator.language || "en-US";
     recognitionRef.current = recognition;
 
+    const failCapture = (errorMessage) => {
+      captureWantedRef.current = false;
+      clearRecognitionTimer();
+      if (recognitionRef.current === recognition) recognitionRef.current = null;
+      recognition.onend = null;
+      try { recognition.abort(); } catch { /* recognition may not have started */ }
+      setCaptureState("error");
+      setMessage(errorMessage);
+      const clarification = clarificationContextRef.current;
+      setFeedback(clarification
+        ? { tone: "question", title: "Tap to answer", message: `${clarification.question} Dictation didn't start automatically; tap the microphone and try again, or type your answer.` }
+        : { tone: "error", title: "Microphone unavailable", message: `${errorMessage} You can type your request instead.` });
+    };
+
+    const retryCapture = () => {
+      if (recognitionRef.current !== recognition) return;
+      clearRecognitionTimer();
+      recognitionRef.current = null;
+      recognition.onend = null;
+      try { recognition.abort(); } catch { /* recognition may already be ended */ }
+      if (!captureWantedRef.current) return;
+      if (safariSpeech) {
+        failCapture("Safari didn't receive any speech.");
+        return;
+      }
+      if (retryCount >= 2) {
+        failCapture("Dictation could not start.");
+        return;
+      }
+      setCaptureState("starting");
+      setMessage("Retrying dictation.");
+      recognitionTimerRef.current = setTimeout(() => {
+        recognitionTimerRef.current = null;
+        startCapture({ preserveFeedback: true, retryCount: retryCount + 1 });
+      }, 300);
+    };
+
+    recognition.onstart = () => {
+      if (recognitionRef.current !== recognition) return;
+      clearRecognitionTimer();
+      setCaptureState("live");
+      setMessage("Listening");
+      recognitionTimerRef.current = setTimeout(retryCapture, 12000);
+    };
+
     recognition.onresult = (event) => {
+      clearRecognitionTimer();
       let interim = "";
       let finalText = finalTranscriptRef.current;
+      let hasFinalResult = false;
       for (let index = event.resultIndex; index < event.results.length; index += 1) {
         const spoken = event.results[index][0].transcript;
-        if (event.results[index].isFinal) finalText += `${spoken} `;
+        if (event.results[index].isFinal) {
+          finalText += `${spoken} `;
+          hasFinalResult = true;
+        }
         else interim += spoken;
       }
       finalTranscriptRef.current = finalText;
       const nextTranscript = `${finalText}${interim}`.trim();
       transcriptRef.current = nextTranscript;
       setTranscript(nextTranscript);
+      if (safariSpeech && hasFinalResult) {
+        captureWantedRef.current = false;
+        recognitionRef.current = null;
+        recognition.onend = null;
+        recognition.stop();
+        setCaptureState("idle");
+        setMessage("Ready to send.");
+        return;
+      }
       setCaptureState("live");
       setMessage("Listening");
+      if (safariSpeech) recognitionTimerRef.current = setTimeout(retryCapture, 8000);
     };
 
     recognition.onerror = (event) => {
       if (recognitionRef.current !== recognition) return;
-      recognitionRef.current = null;
-      stopMicrophone();
-      setCaptureState("error");
       const errorMessages = {
         "not-allowed": "Microphone permission was not granted.",
         "service-not-allowed": "Live transcription was blocked by the browser.",
-        "no-speech": "No speech was heard. Press ⌘J to try again."
+        "audio-capture": "No working microphone was found."
       };
-      const errorMessage = errorMessages[event.error] || "Voice input could not start.";
-      setMessage(errorMessage);
-      setFeedback({ tone: "error", title: "I couldn't hear that", message: `${errorMessage} You can type the request instead.` });
+      if (errorMessages[event.error]) failCapture(errorMessages[event.error]);
+      else retryCapture();
     };
 
     recognition.onend = () => {
       if (recognitionRef.current !== recognition) return;
-      recognitionRef.current = null;
-      stopMicrophone();
-      setCaptureState("idle");
-      setMessage(transcriptRef.current ? "Transcript paused." : "Listening ended. Press ⌘J to try again.");
+      if (safariSpeech && transcriptRef.current) {
+        clearRecognitionTimer();
+        captureWantedRef.current = false;
+        recognitionRef.current = null;
+        setCaptureState("idle");
+        setMessage("Ready to send.");
+        return;
+      }
+      retryCapture();
     };
 
     try {
       // The first request starts inside the Cmd/Ctrl+J user gesture; clarification
       // replies reuse the permission already granted for that conversation.
-      const microphoneRequest = startMicrophone();
       recognition.start();
-      const microphoneStream = await microphoneRequest;
-      if (!microphoneStream && recognitionRef.current === recognition) {
-        recognitionRef.current = null;
-        recognition.stop();
-        setCaptureState("error");
-        setMessage("Microphone access is unavailable.");
-      }
     } catch {
-      if (recognitionRef.current === recognition) {
-        recognitionRef.current = null;
-        recognition.stop();
-      }
-      stopMicrophone();
-      setCaptureState("error");
-      setMessage("Voice input could not start.");
-      setFeedback({ tone: "error", title: "Microphone unavailable", message: "Voice input could not start, but you can type the request below." });
+      retryCapture();
+      return;
     }
-  }, [captureState, startMicrophone, stopMicrophone]);
+    clearRecognitionTimer();
+    recognitionTimerRef.current = setTimeout(retryCapture, 5000);
+  }, [clearRecognitionTimer]);
 
   useEffect(() => {
     const target = document.documentElement;
@@ -142,7 +202,6 @@ function VoiceTranscript() {
       finalTranscriptRef.current = "";
       transcriptRef.current = "";
       clarificationContextRef.current = null;
-      autoResumeRef.current = false;
       setFeedback(null);
     };
     dialog?.addEventListener("close", resetOnClose);
@@ -160,7 +219,6 @@ function VoiceTranscript() {
       finalTranscriptRef.current = "";
       transcriptRef.current = "";
       clarificationContextRef.current = null;
-      autoResumeRef.current = false;
       setFeedback(null);
       setMessage("Starting microphone.");
       dialog.showModal();
@@ -172,16 +230,19 @@ function VoiceTranscript() {
     };
   }, [startCapture]);
 
-  const live = captureState === "starting" || captureState === "live" || microphoneState === "requesting";
+  const starting = captureState === "starting";
+  const live = captureState === "live";
+  const captureActive = starting || live;
+  const awaitingAnswer = Boolean(clarificationContextRef.current);
 
   useEffect(() => {
-    if (!live) return;
+    if (!captureActive) return;
     const frame = requestAnimationFrame(() => {
       const transcriptArea = transcriptAreaRef.current;
       if (transcriptArea) transcriptArea.scrollTop = transcriptArea.scrollHeight;
     });
     return () => cancelAnimationFrame(frame);
-  }, [live, transcript]);
+  }, [captureActive, transcript]);
 
   useEffect(() => {
     if (!feedback) return;
@@ -192,15 +253,9 @@ function VoiceTranscript() {
     return () => cancelAnimationFrame(frame);
   }, [feedback]);
 
-  useEffect(() => {
-    if (submitting || live || feedback?.tone !== "question" || !autoResumeRef.current) return;
-    autoResumeRef.current = false;
-    void startCapture({ preserveFeedback: true });
-  }, [feedback, live, startCapture, submitting]);
-
   const closeVoice = () => document.querySelector("#voice-command-dialog")?.close();
   const updateTranscript = (value) => {
-    if (live) stopCapture("Transcript paused.");
+    if (captureActive) stopCapture("Transcript paused.");
     transcriptRef.current = value;
     finalTranscriptRef.current = value ? `${value.trim()} ` : "";
     setTranscript(value);
@@ -215,7 +270,7 @@ function VoiceTranscript() {
     const requestText = clarification
       ? [
           `Original request: ${clarification.request.slice(0, 2800)}`,
-          `Ember asked: ${clarification.question.slice(0, 500)}`,
+          `Ordo asked: ${clarification.question.slice(0, 500)}`,
           `User answered: ${text.slice(0, 600)}`,
         ].join("\n")
       : text;
@@ -236,7 +291,6 @@ function VoiceTranscript() {
         setTranscript("");
         finalTranscriptRef.current = "";
         transcriptRef.current = "";
-        autoResumeRef.current = true;
         setFeedback({ tone: "question", title: "One detail needed", message: result.message });
       }
     } catch (error) {
@@ -250,24 +304,24 @@ function VoiceTranscript() {
 
   return <div className="voice-console">
     <header className="voice-console-head">
-      <div><span className="voice-kicker">Ember assistant</span><h2 id="voice-command-title">What can I help with?</h2></div>
+      <div><span className="voice-kicker">Ordo assistant</span><h2 id="voice-command-title">What can I help with?</h2></div>
       <button className="voice-icon-button" type="button" onClick={closeVoice} aria-label="Close voice input" title="Close"><X size={18} strokeWidth={1.8} /></button>
     </header>
     <section ref={responseAreaRef} className={`voice-response is-${feedback?.tone || captureState}`}>
-      <span className="voice-state"><i aria-hidden="true"></i>{submitting ? "Thinking" : live ? "Listening" : transcript ? "Ready" : "Ask Ember"}</span>
-      <textarea ref={transcriptAreaRef} className="voice-transcript" value={transcript} onChange={(event) => updateTranscript(event.target.value)} aria-label="Calendar request" placeholder={feedback?.tone === "question" ? "Answer Ember’s question…" : live ? "Listening…" : "Say or type a calendar request…"} rows="3" />
+      <span className="voice-state"><i aria-hidden="true"></i>{submitting ? "Thinking" : starting ? "Starting…" : live ? "Listening" : transcript ? "Ready" : awaitingAnswer ? "Tap mic to answer" : "Ask Ordo"}</span>
+      <textarea ref={transcriptAreaRef} className="voice-transcript" value={transcript} onChange={(event) => updateTranscript(event.target.value)} aria-label="Calendar request" placeholder={live ? "Listening…" : starting ? "Connecting to microphone…" : awaitingAnswer ? "Tap the microphone, then speak…" : "Say or type a calendar request…"} rows="3" />
       {feedback
         ? <div className={`voice-feedback is-${feedback.tone}`} role="status" aria-live="polite"><strong>{feedback.title}</strong><p>{feedback.message}</p></div>
         : <small>“Gym every weekday at 7 AM” · “Delete my dentist appointment tomorrow”</small>}
     </section>
     <footer className="voice-console-footer">
       <div className="voice-orb-control">
-        <VoiceBeam type="default" stream={stream} level={() => live ? 0.1 : 0} active={live} colorVariant="colorful" theme={theme} borderRadius={999} strength={0.72} idle={live ? 0.09 : 0} flow={38} reach={1} spread={0.82}>
-          <button className={`voice-orb${live ? " is-live" : ""}`} type="button" onClick={() => live ? stopCapture() : void startCapture()} aria-label={live ? "Pause voice input" : "Start voice input"} title={live ? "Pause" : "Speak"}>
-            {live ? <Square size={19} fill="currentColor" strokeWidth={1.5} /> : <Mic size={23} strokeWidth={1.8} />}
+        <VoiceBeam type="default" level={() => live ? 0.1 : 0} active={captureActive} colorVariant="colorful" theme={theme} borderRadius={999} strength={0.72} idle={live ? 0.09 : 0} flow={38} reach={1} spread={0.82}>
+          <button className={`voice-orb${captureActive ? " is-live" : ""}`} type="button" onClick={() => captureActive ? stopCapture() : void startCapture({ preserveFeedback: awaitingAnswer })} aria-label={captureActive ? "Pause voice input" : awaitingAnswer ? "Answer by voice" : "Start voice input"} title={captureActive ? "Pause" : "Speak"}>
+            {captureActive ? <Square size={19} fill="currentColor" strokeWidth={1.5} /> : <Mic size={23} strokeWidth={1.8} />}
           </button>
         </VoiceBeam>
-        <span>{live ? "Tap to pause" : "Tap to speak"}</span>
+        <span>{starting ? "Starting…" : live ? "Tap to pause" : awaitingAnswer ? "Tap to answer" : "Tap to speak"}</span>
       </div>
       <button className="voice-submit" type="button" disabled={!transcript.trim() || submitting} onClick={submitCommand}><span>{submitting ? "Working" : "Send"}</span><ArrowUp size={17} strokeWidth={2} /></button>
     </footer>
@@ -275,8 +329,8 @@ function VoiceTranscript() {
 }
 
 function VoiceLauncher() {
-  return <button className="voice-island" type="button" onClick={() => window.semesterOpenVoiceCommand?.()} aria-label="Speak to Ember" title="Speak to Ember (Command J)">
-    <span className="voice-island-icon" aria-hidden="true"><Mic size={17} strokeWidth={1.9} /></span><span>Speak to Ember</span><kbd>⌘J</kbd>
+  return <button className="voice-island" type="button" onClick={() => window.semesterOpenVoiceCommand?.()} aria-label="Speak to Ordo" title="Speak to Ordo (Command J)">
+    <span className="voice-island-icon" aria-hidden="true"><Mic size={17} strokeWidth={1.9} /></span><span>Speak to Ordo</span><kbd>⌘J</kbd>
   </button>;
 }
 
