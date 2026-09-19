@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Semester workspace</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Workspace navigation">
+      <div class="brand">
+        <strong>Semester</strong>
+        <span>Fall 2026 · UTM</span>
+      </div>
+
+      <nav class="primary-nav" aria-label="Pages">
+        <button class="nav-item is-active" data-page="today" aria-current="page"><span>Today</span><span data-count="today"></span></button>
+        <button class="nav-item" data-page="tasks"><span>Tasks</span><span data-count="tasks"></span></button>
+        <button class="nav-item" data-page="calendar"><span>Calendar</span><span></span></button>
+        <button class="nav-item" data-page="planner"><span>Planner</span><span></span></button>
+      </nav>
+
+      <div class="sidebar-label">Courses</div>
+      <nav id="course-nav" class="course-nav" aria-label="Courses"></nav>
+
+      <div class="sidebar-footer">
+        <button class="quiet-button search-trigger" type="button">Search <kbd>⌘K</kbd></button>
+        <button class="quiet-button" type="button" data-page="settings">Settings</button>
+      </div>
+    </aside>
+
+    <header class="mobile-header">
+      <button class="wordmark" type="button" data-page="today">Semester</button>
+      <button class="quiet-button search-trigger" type="button">Search</button>
+    </header>
+
+    <main id="main" tabindex="-1"></main>
+
+    <nav class="mobile-nav" aria-label="Mobile pages">
+      <button class="is-active" data-page="today">Today</button>
+      <button data-page="tasks">Tasks</button>
+      <button data-page="calendar">Calendar</button>
+      <button data-page="planner">Planner</button>
+    </nav>
+  </div>
+
+  <dialog id="quick-add" class="overlay-dialog">
+    <form method="dialog" id="quick-form">
+      <div class="dialog-heading">
+        <div>
+          <span class="section-label">New task</span>
+          <h2>Add to your workload</h2>
+        </div>
+        <button class="icon-button" type="button" data-action="close-quick" aria-label="Close new task dialog">Close</button>
+      </div>
+      <label class="field-label" for="task-title">Task title</label>
+      <input id="task-title" name="title" autocomplete="off" placeholder="What needs to be done?" required>
+      <div class="form-grid">
+        <label><span class="field-label">Course</span><select id="task-course" name="course"></select></label>
+        <label><span class="field-label">Due</span><select name="due"><option value="today">Today</option><option value="Monday">Monday</option><option value="Thursday">Thursday</option></select></label>
+        <label><span class="field-label">Priority</span><select name="priority"><option>Medium</option><option>High</option><option>Low</option></select></label>
+        <label><span class="field-label">Estimate</span><select name="estimate"><option value="30">30 min</option><option value="45">45 min</option><option value="60">1 hour</option><option value="90">1.5 hours</option></select></label>
+      </div>
+      <div class="dialog-actions">
+        <span>Press Esc to close</span>
+        <button class="primary-button" type="submit">Create task</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="search-dialog" class="overlay-dialog search-dialog">
+    <form method="dialog" id="search-form">
+      <label class="sr-only" for="global-search">Search tasks, courses, or pages</label>
+      <input id="global-search" autocomplete="off" placeholder="Search tasks, courses, or pages">
+      <div id="search-results" class="search-results"></div>
+      <div class="dialog-actions"><span>Enter to open · Esc to close</span><button value="cancel" class="text-button">Close</button></div>
+    </form>
+  </dialog>
+
+  <aside id="detail-panel" class="detail-panel" aria-hidden="true" aria-label="Task details" inert></aside>
+  <div id="panel-scrim" class="panel-scrim" hidden></div>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
