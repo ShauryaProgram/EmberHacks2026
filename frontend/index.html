@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
-  <title>Semester workspace</title>
+  <title>Semester workspace v3</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -65,7 +65,7 @@
         <button class="icon-button" type="button" data-action="close-quick" aria-label="Close new task dialog">Close</button>
       </div>
       <label class="field-label" for="task-title">Task title</label>
-      <input id="task-title" name="title" autocomplete="off" placeholder="What needs to be done?" required>
+      <div id="voice-input-root"></div>
       <div class="form-grid">
         <label><span class="field-label">Course</span><select id="task-course" name="course"></select></label>
         <label><span class="field-label">Due</span><select name="due"><option value="today">Today</option><option value="Monday">Monday</option><option value="Thursday">Thursday</option></select></label>
@@ -92,6 +92,6 @@
   <div id="panel-scrim" class="panel-scrim" hidden></div>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
-  <script src="app.js"></script>
+  <script type="module" src="main.jsx"></script>
 </body>
 </html>

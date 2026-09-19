@@ -282,6 +282,7 @@ document.querySelector("#quick-form").addEventListener("submit", event => {
   persist();
   quickDialog.close();
   event.currentTarget.reset();
+  window.semesterResetVoiceInput?.();
   state.page = "today";
   render();
   notify("Task created");
