@@ -6,7 +6,7 @@ Ordo — Latin for *order* — takes the scattered deadlines of a semester and a
 them into a clear daily plan: study blocks placed around classes, meals, sleep,
 and commitments, updated by voice, and quietly protected from distraction.
 
-Powered by **Gemini** throughout, via OpenRouter.
+Powered by **Gemini** throughout.
 
 ---
 
